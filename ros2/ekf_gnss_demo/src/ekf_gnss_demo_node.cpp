@@ -118,15 +118,7 @@ class EkfGnssDemoNode final : public rclcpp::Node {
     imu.gyro_z_rad_s = msg->angular_velocity.z;
     imu.accel_x_m_s2 = msg->linear_acceleration.x;
 
-    double dt = ekf::sim::kDtS;
-    if (last_imu_t_s_ >= 0.0) {
-      dt = imu.t_s - last_imu_t_s_;
-    }
-  last_imu_t_s_ = imu.t_s;
-    if (dt <= 0.0 || dt > 0.5) {
-      dt = ekf::sim::kDtS;
-    }
-
+    const double dt = ekf::sim::kDtS;
     if (filter_.lifecycle == ekf::Lifecycle::Initialized) {
       imu.t_s = filter_.t_s + dt;
     }
@@ -176,7 +168,6 @@ class EkfGnssDemoNode final : public rclcpp::Node {
   ekf::Config cfg_{};
   ekf::Origin origin_{};
   ekf::Filter filter_{};
-  double last_imu_t_s_ = -1.0;
   builtin_interfaces::msg::Time last_imu_stamp_{};
   bool have_last_imu_stamp_ = false;
   nav_msgs::msg::Odometry pending_wheel_{};
