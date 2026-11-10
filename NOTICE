@@ -1,0 +1,56 @@
+ekf-gnss-localization
+Copyright 2026 Arpan Bom
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+Third-party components (fetched or used at build time; none is vendored
+into this repository's sources):
+
+Build and runtime dependencies
+- nlohmann/json v3.12.0 (commit 55f93686c015), MIT. Fetched with CMake
+  FetchContent for ekf_sim, ekf_cli and the WASM module (not used by
+  ekf_core).
+- Emscripten SDK 7.0.0, MIT / University of Illinois NCSA (dual). Its
+  generated JavaScript glue (web/public/ekf.js) and runtime libraries are
+  linked into the WASM demo bundle.
+
+Test and development tools (not distributed in the library)
+- GoogleTest v1.18.0 (commit 063de7e9578f), BSD-3-Clause. Fetched with
+  FetchContent for native (non-WASM) builds; linked only into the tests.
+- Node.js 26.13.0, MIT (CI runtime for the web build).
+- TypeScript 7.0.2, Apache-2.0.
+- Vite 8.3.7, MIT.
+- Vitest 5.1.0, MIT.
+- @playwright/test 1.65.0, Apache-2.0 (with Chromium from Playwright).
+- @types/node 22.13.4, MIT.
+
+ROS 2 Humble demo (`ros2/ekf_gnss_demo`; not required for native tests). Debian
+packages from the pinned `ros:humble-ros-base-jammy` image used in
+`ros2-humble.yml` (versions printed by its "Log toolchain" step); licenses from
+each package's package.xml and repository LICENSE:
+- rclcpp (`ros-humble-rclcpp` 16.0.21), Apache-2.0
+- ament_cmake (`ros-humble-ament-cmake` 1.3.14), Apache-2.0
+- nav_msgs, sensor_msgs, geometry_msgs, std_msgs (`ros-humble-*-msgs`
+  4.9.2, ros2/common_interfaces), Apache-2.0
+Test only:
+- rclpy (`ros-humble-rclpy` 3.3.22), Apache-2.0
+- ament_index_python (`ros-humble-ament-index-python` 1.4.1), Apache-2.0
+- launch (`ros-humble-launch` 1.0.15), launch_ros (`ros-humble-launch-ros`
+  0.19.14), launch_testing (`ros-humble-launch-testing` 1.0.15), Apache-2.0
+- launch_testing_ament_cmake (`ros-humble-launch-testing-ament-cmake`
+  1.0.15), Apache-2.0 (its package.xml also lists BSD)
+`robot_localization` is not used in this repository.
+
+Idea references (designs and papers that informed this original
+implementation; no code copied) are listed with their licences in
+REFERENCES.md.

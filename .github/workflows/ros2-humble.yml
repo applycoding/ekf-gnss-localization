@@ -1,0 +1,65 @@
+# SPDX-License-Identifier: Apache-2.0
+name: ros2-humble
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  humble-build-test:
+    runs-on: ubuntu-24.04
+    container:
+      image: ros:humble-ros-base-jammy@sha256:a3f4de78e42cca693a543ece5798aedcf1cae0171fe71c334a047332cc72ef93
+    defaults:
+      run:
+        shell: bash -eo pipefail {0}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install build dependencies
+        run: |
+          set -ex
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            build-essential cmake ninja-build git \
+            ros-humble-ament-cmake \
+            ros-humble-rclcpp \
+            ros-humble-nav-msgs \
+            ros-humble-sensor-msgs \
+            ros-humble-geometry-msgs \
+            ros-humble-std-msgs \
+            ros-humble-launch \
+            ros-humble-launch-ros \
+            ros-humble-launch-testing \
+            ros-humble-launch-testing-ament-cmake
+
+      - name: Log toolchain
+        run: |
+          g++ --version
+          cmake --version
+          python3 --version
+          source /opt/ros/humble/setup.bash
+          test -f /opt/ros/humble/setup.bash
+          dpkg-query -W -f='${Package} ${Version}\n' \
+            ros-humble-ament-cmake ros-humble-rclcpp ros-humble-rclpy \
+            ros-humble-ament-index-python ros-humble-nav-msgs \
+            ros-humble-sensor-msgs ros-humble-geometry-msgs ros-humble-std-msgs \
+            ros-humble-launch ros-humble-launch-ros ros-humble-launch-testing \
+            ros-humble-launch-testing-ament-cmake
+
+      - name: Colcon build and test ekf_gnss_demo
+        run: |
+          set -ex
+          source /opt/ros/humble/setup.bash
+          cd "${GITHUB_WORKSPACE}/ros2"
+          test "$(colcon list --packages-select ekf_gnss_demo | wc -l)" -eq 1
+          colcon build --packages-select ekf_gnss_demo \
+            --cmake-args -DCMAKE_BUILD_TYPE=Release -GNinja
+          source install/setup.bash
+          colcon test --packages-select ekf_gnss_demo \
+            --event-handlers console_direct+ \
+            --return-code-on-test-failure
+          colcon test-result --verbose
+          ntests=$(colcon test-result --verbose 2>&1 | awk '/Summary:/{print $2; exit}')
+          test "${ntests:-0}" -gt 0

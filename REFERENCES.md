@@ -62,7 +62,7 @@ Licences were checked on 2026-11-10 against each project's actual licence file (
 
 ## Background reading (not code)
 
-- Y. Bar-Shalom, X. R. Li, T. Kirubarajan, *Estimation with Applications to Tracking and Navigation*, Wiley, 2001 — the filter-consistency chapter (NEES/NIS chi-square tests). The maths is paraphrased in our own words; no text or figures are copied.
+- Y. Bar-Shalom, X. R. Li, T. Kirubarajan, *Estimation with Applications to Tracking and Navigation*, Wiley, 2001 (doi:10.1002/0471221279, ISBN 978-0-471-41655-5) — the filter-consistency chapter (NEES/NIS chi-square tests). The maths is paraphrased in our own words; no text or figures are copied.
 - R. Labbe, *Kalman and Bayesian Filters in Python* (https://github.com/rlabbe/Kalman-and-Bayesian-Filters-in-Python). Its `license.html` text and link disagree (BY-NC-SA 4.0 text vs a BY 4.0 link), so it is reading only. Nothing is reused.
 
 ## Looked at, excluded as code references

@@ -1,0 +1,25 @@
+{
+  "name": "urban",
+  "filter": {
+    "model_gnss_bias": true,
+    "estimate_wheel_scale": true,
+    "gate": true,
+    "gnss_sigma_m": 1.5
+  },
+  "truth": {
+    "wheel_scale": 1.02,
+    "gyro_bias_rad_s": 0.01
+  },
+  "gnss_sim": {
+    "gauss_markov": true,
+    "dropout_start_s": 50.0,
+    "dropout_end_s": 75.0,
+    "multipath_probability": 0.05
+  },
+  "wheel_sim": {
+    "slip_windows": [
+      { "start_s": 40.0, "end_s": 41.0 },
+      { "start_s": 90.0, "end_s": 91.0 }
+    ]
+  }
+}
