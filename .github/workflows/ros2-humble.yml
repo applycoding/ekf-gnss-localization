@@ -45,7 +45,7 @@ jobs:
 
       - name: Colcon build and test ekf_gnss_demo
         run: |
-          set -eux
+          set -ex
           source /opt/ros/humble/setup.bash
           cd "${GITHUB_WORKSPACE}"
           colcon build --packages-select ekf_gnss_demo \
