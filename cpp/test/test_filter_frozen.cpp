@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "ekf/filter.hpp"
+#include "ekf/geodesy.hpp"
 #include "ekf/mat.hpp"
 
 #include <cstring>
@@ -47,7 +48,7 @@ void set_frozen_state(ekf::Filter& f) {
   f.P[6] = -1.0;
   f.P[15] = -1.0;
   f.P[48] = -1.0;
-  f.P[51] = -1.0;
+  f.P[57] = -1.0;
 }
 
 }  // namespace
@@ -73,4 +74,21 @@ TEST(FilterFrozen, PredictWheelGnss) {
   EXPECT_NEAR(f.x[5], 1.002229299247, 1e-9);
   EXPECT_NEAR(wres.nis_pre_gate, 0.029709135329, 1e-9);
 
+  ekf::Origin origin{};
+  const ekf::Llh origin_llh{0.0, 0.0, 0.0};
+  ASSERT_EQ(ekf::MakeOrigin(origin_llh, origin), ekf::Status::Ok);
+  double ecef_z[3];
+  const ekf::Enu z_enu{12.0, -3.5, 0.0};
+  ekf::EnuToEcef(origin, z_enu, ecef_z);
+  ekf::Llh gnss_llh{};
+  ASSERT_EQ(ekf::EcefToGeodetic(ecef_z, gnss_llh), ekf::Status::Ok);
+  const ekf::GnssSample gnss{0.02, gnss_llh.lat_rad, gnss_llh.lon_rad, gnss_llh.h_m};
+  const ekf::UpdateResult gres = ekf::UpdateGnss(f, cfg, origin, gnss);
+  ASSERT_EQ(gres.status, ekf::Status::Ok);
+  ASSERT_TRUE(gres.accepted);
+  EXPECT_NEAR(f.x[0], 10.621255435500, 1e-9);
+  EXPECT_NEAR(f.x[1], -4.423126700443, 1e-9);
+  EXPECT_NEAR(f.x[2], 0.507332004748, 1e-9);
+  EXPECT_NEAR(gres.nis_pre_gate, 1.556809790907, 1e-9);
+  EXPECT_NEAR(f.P[0], 1.692285622328, 1e-9);
 }

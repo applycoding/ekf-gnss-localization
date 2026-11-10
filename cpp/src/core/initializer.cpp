@@ -189,7 +189,7 @@ Status InitOnGnss(InitializerState& st, const GnssSample& gnss, const Origin& or
     out.P[6] = -sb2;
     out.P[15] = -sb2;
     out.P[48] = -sb2;
-    out.P[51] = -sb2;
+    out.P[57] = -sb2;
   }
 
   out.ready = true;

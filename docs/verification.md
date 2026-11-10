@@ -3,7 +3,7 @@
 | # | Criterion | Tests / evidence |
 | --- | --- | --- |
 | 1 | Core configure/build/ctest | `core.yml`, `ctest --preset default` |
-| 2 | 2/8-state examples | `FilterFrozen.PredictWheelGnss` (predict + wheel); GNSS golden pending (see DEVIATIONS.md) |
+| 2 | 2/8-state examples | `FilterFrozen.PredictWheelGnss` (predict + wheel + GNSS golden) |
 | 3 | Jacobian FD | planned in `test_unit` |
 | 4 | Geodesy | planned in `test_unit` |
 | 5 | Invalid inputs | planned in `test_unit` |
@@ -14,7 +14,7 @@
 | 10 | Gyro bias | `Scenario.MatchedCriteriaSeeds1to5` |
 | 11 | Wheel scale | `Scenario.UrbanCriteriaSeeds1to5` |
 | 12 | Matched MC NEES | `MonteCarlo.MatchedPositionNeessN50` |
-| 13 | Urban MC NEES | `MonteCarlo.UrbanPositionNeessN50` (see DEVIATIONS) |
+| 13 | Urban MC NEES | `MonteCarlo.UrbanPositionNeessN50` |
 | 14 | White-model ablation | `MonteCarlo.UrbanWhiteModelFailsNeessN50` |
 | 15 | Reacquisition | not yet automated |
 | 16 | Rejection rates | not yet automated |
