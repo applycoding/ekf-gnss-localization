@@ -18,14 +18,15 @@ into this repository's sources):
 
 Build and runtime dependencies
 - nlohmann/json v3.12.0 (commit 55f93686c015), MIT. Fetched with CMake
-  FetchContent for ekf_sim and ekf_cli (not used by ekf_core).
+  FetchContent for ekf_sim, ekf_cli and the WASM module (not used by
+  ekf_core).
 - Emscripten SDK 7.0.0, MIT / University of Illinois NCSA (dual). Its
   generated JavaScript glue (web/public/ekf.js) and runtime libraries are
   linked into the WASM demo bundle.
 
 Test and development tools (not distributed in the library)
 - GoogleTest v1.18.0 (commit 063de7e9578f), BSD-3-Clause. Fetched with
-  FetchContent when EKF_BUILD_TESTS is ON.
+  FetchContent for native (non-WASM) builds; linked only into the tests.
 - Node.js 26.13.0, MIT (CI runtime for the web build).
 - TypeScript 7.0.2, Apache-2.0.
 - Vite 8.3.7, MIT.

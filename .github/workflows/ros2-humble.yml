@@ -1,10 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
-name: ros2-humble
+name: ros2-humble-placeholder (no ROS build; non-gating)
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 8 * * 1"
 
 jobs:
   humble-placeholder:

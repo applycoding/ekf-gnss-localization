@@ -6,4 +6,4 @@ Straight-segment heading change is tracked as the net integrated gyro (`∫ ω_m
 
 ## ROS 2 Humble side-by-side (criterion 19)
 
-The optional workflow `.github/workflows/ros2-humble.yml` is present (manual + weekly schedule) but the `ros2/ekf_gnss_demo` package is **not** included in this repository yet. The job exits successfully with a notice; a full `robot_localization` comparison CSV is not produced until that package lands.
+The workflow `.github/workflows/ros2-humble.yml` is a manual-only, non-gating placeholder (`ros2-humble-placeholder`) that builds and tests nothing, and the `ros2/ekf_gnss_demo` package is **not** included in this repository yet. The job exits successfully with a notice; a full `robot_localization` comparison CSV is not produced until that package lands.

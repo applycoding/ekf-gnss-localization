@@ -31,12 +31,12 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: actions/github-script@60a0d830b5a22f4fd81c4ebf68b7c85a5cc67a56 # v7.0.1
+      - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         id: gate
         with:
           script: |
             const sha = context.payload.workflow_run.head_sha;
-            const core = await github.rest.actions.listWorkflowRuns({
+            const coreRuns = await github.rest.actions.listWorkflowRuns({
               owner: context.repo.owner,
               repo: context.repo.repo,
               workflow_id: 'core.yml',
@@ -44,7 +44,7 @@ jobs:
               status: 'completed',
               per_page: 10
             });
-            const coreOk = core.data.workflow_runs.some(r => r.conclusion === 'success');
+            const coreOk = coreRuns.data.workflow_runs.some(r => r.conclusion === 'success');
             core.setOutput('deploy_ok', coreOk ? 'true' : 'false');
 
       - name: Require core and web green on same commit
