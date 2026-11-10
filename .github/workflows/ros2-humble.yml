@@ -41,7 +41,7 @@ jobs:
           cmake --version
           python3 --version
           source /opt/ros/humble/setup.bash
-          ros2 --version
+          ros2 pkg list | head -3
 
       - name: Colcon build and test ekf_gnss_demo
         run: |
