@@ -34,13 +34,21 @@ install(DIRECTORY launch
   DESTINATION share/${PROJECT_NAME})
 
 if(BUILD_TESTING)
-  find_package(ament_cmake_test REQUIRED)
-  install(PROGRAMS test/smoke_topics.sh DESTINATION share/${PROJECT_NAME}/test)
-  set(_install_setup "${CMAKE_BINARY_DIR}/../../install/setup.bash")
-  ament_add_test(
-    smoke_topics
-    COMMAND bash -c ". '${_install_setup}' && '${CMAKE_CURRENT_SOURCE_DIR}/test/smoke_topics.sh'"
-    TIMEOUT 120
+  add_test(
+    NAME smoke_ekf_node
+    COMMAND ekf_gnss_demo_node --ros-args -p replay_rate_hz:=8000.0
+  )
+  set_tests_properties(smoke_ekf_node PROPERTIES
+    TIMEOUT 60
+    PASS_REGULAR_EXPRESSION "ekf_gnss_demo replay finished"
+  )
+  add_test(
+    NAME smoke_sim_node
+    COMMAND sim_sensor_node --ros-args -p replay_rate_hz:=8000.0
+  )
+  set_tests_properties(smoke_sim_node PROPERTIES
+    TIMEOUT 60
+    PASS_REGULAR_EXPRESSION "sim_sensor replay"
   )
 endif()
 
