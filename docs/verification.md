@@ -18,9 +18,9 @@
 | 14 | White-model ablation | `MonteCarlo.UrbanWhiteModelFailsNeessN50` |
 | 15 | Reacquisition | `Reacquisition.MatchedInjectEast20m` (seeds 1–5, error at **t = 35 s**, `reacquisitions ≥ 1`); `Reacquisition.UnmodifiedSeedsHaveZeroReacquisitions` |
 | 16 | Rejection / recall | `MonteCarlo.MatchedGnssRejectionRateN50`, `MonteCarlo.UrbanOutlierRecallAndFalseRejectN50` |
-| 17 | Determinism | `Determinism.SameSeedBitIdenticalTrace`, `Determinism.O0O2Parity`; `Determinism.WasmMatchesNativeParity` (repo-root `WORKING_DIRECTORY`, `EKF_REQUIRE_WASM_PARITY=1` in `core.yml`; `node tools/wasm_native_parity.mjs` in `web.yml`). The WASM check compares positions within 1e-6 m on matched seed 1; it does not yet compare gate decisions |
+| 17 | Determinism | `Determinism.SameSeedBitIdenticalTrace`, `Determinism.O0O2Parity`; `Determinism.WasmMatchesNativeParity` (`EKF_REQUIRE_WASM_PARITY=1` in `core.yml`). `tools/wasm_native_parity.mjs` compares native `ekf_cli --parity-full` vs WASM for matched seeds **1–5** and urban seed **1**: RMSE within **1e-6 m**, identical GNSS gate accept/reject per emitted epoch, full state trace (`ee, en, ψ, v, b_g, k`) within **1e-6**; fails (never skips) when `EKF_REQUIRE_WASM_PARITY=1`. Same script in `web.yml` after WASM rebuild |
 | 18 | Web + Pages gate | `web.yml`; Vitest `neesSummaryLabel` in `web/tests/smoke.test.ts`; Playwright `e2e/demo.spec.ts`; `pages.yml` on `core`/`web` `workflow_run`, deploy when both succeeded on same SHA |
-| 19 | ROS Humble | `ros2-humble.yml` (placeholder); see `DEVIATIONS.md` |
+| 19 | ROS Humble | `ros2-humble.yml` (gating on push/PR): `colcon build` + `colcon test` for `ros2/ekf_gnss_demo` (`launch_testing` `test_ekf_gnss_demo.launch.py` waits for `/ekf_gnss/odometry`, `/ekf_gnss/pose`, `/sim/imu`). `robot_localization` CSV comparison not in-tree — see `DEVIATIONS.md` |
 | 20 | LICENSE / NOTICE / SPDX | `LICENSE` SHA-256; `NOTICE`; SPDX headers |
 | 21 | README honesty | `README.md` |
 | 22 | Git authorship | branch `git log` |

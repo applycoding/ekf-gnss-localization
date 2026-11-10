@@ -20,6 +20,10 @@ emscripten::val trace_to_val(const ekf::sim::Trace& trace, const ekf::sim::RunMe
     o.set("tn", t.truth_n_m);
     o.set("ee", t.est_e_m);
     o.set("en", t.est_n_m);
+    o.set("epsi", t.est_psi_rad);
+    o.set("ev", t.est_v_m_s);
+    o.set("ebg", t.est_b_g_rad_s);
+    o.set("ek", t.est_k);
     o.set("env", t.envelope_m);
     o.set("init", t.filter_initialized);
     ticks.call<void>("push", o);
@@ -31,6 +35,8 @@ emscripten::val trace_to_val(const ekf::sim::Trace& trace, const ekf::sim::RunMe
     o.set("me", g.meas_e_m);
     o.set("mn", g.meas_n_m);
     o.set("accepted", g.accepted);
+    o.set("emitted", g.emitted);
+    o.set("status", g.update_status);
     o.set("nees", g.nees_pos);
     gnss.call<void>("push", o);
   }
@@ -42,6 +48,8 @@ emscripten::val trace_to_val(const ekf::sim::Trace& trace, const ekf::sim::RunMe
   out.set("rmseGnss", metrics.baseline_gnss_only.rmse_horizontal_m);
   out.set("rmseDr", metrics.baseline_dead_reckoning.rmse_horizontal_m);
   out.set("rmseGateOff", metrics.baseline_ekf_gate_off.rmse_horizontal_m);
+  out.set("gnssAccepted", trace.gnss_accepted);
+  out.set("gnssGated", trace.gnss_gated);
   return out;
 }
 

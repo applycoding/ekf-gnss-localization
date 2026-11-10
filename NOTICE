@@ -34,6 +34,14 @@ Test and development tools (not distributed in the library)
 - @playwright/test 1.65.0, Apache-2.0 (with Chromium from Playwright).
 - @types/node 22.13.4, MIT.
 
+ROS 2 Humble demo (optional `ros2/ekf_gnss_demo`; not required for native tests)
+- ROS 2 Humble rosdistro (rclcpp, nav_msgs, sensor_msgs, geometry_msgs,
+  std_msgs, launch, launch_ros, launch_testing, launch_testing_ros,
+  ament_cmake): Apache-2.0 / BSD-style per package; installed from the
+  `ros:humble-ros-base-jammy` image and `ros-humble-*` Debian packages
+  (recorded in `ros2-humble.yml` CI logs). `robot_localization` is not a
+  build dependency of this repository.
+
 Idea references (designs and papers that informed this original
 implementation; no code copied) are listed with their licences in
 REFERENCES.md.

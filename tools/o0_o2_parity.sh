@@ -14,22 +14,33 @@ import sys
 
 root = sys.argv[1]
 
-def dump(build):
+def dump(build, scenario="matched", seed=1):
     out = subprocess.check_output(
-        [f"{root}/build/{build}/ekf_cli", "matched", "1", "--parity"], text=True
+        [f"{root}/build/{build}/ekf_cli", scenario, str(seed), "--parity-full"],
+        text=True,
     )
-    rows = []
+    lines = []
     for line in out.strip().splitlines():
-        if line.strip():
-            rows.append(tuple(map(float, line.split())))
-    return rows
+        if line.startswith("S "):
+            lines.append(("S", tuple(line.split()[1:])))
+        elif line.startswith("G "):
+            lines.append(("G", tuple(line.split()[1:])))
+        elif line.startswith("RMSE "):
+            lines.append(("RMSE", float(line.split()[1])))
+    return lines
 
 a = dump("o0")
 b = dump("o2")
 assert len(a) == len(b)
-for row_a, row_b in zip(a, b):
-    assert row_a[0] == row_b[0]
-    assert abs(row_a[1] - row_b[1]) < 1e-9
-    assert abs(row_a[2] - row_b[2]) < 1e-9
-    assert int(row_a[3]) == int(row_b[3])
+for (ka, va), (kb, vb) in zip(a, b):
+    assert ka == kb
+    if ka == "RMSE":
+        assert abs(va - vb) < 1e-9
+    elif ka == "G":
+        assert va[0] == vb[0]
+        assert int(va[1]) == int(vb[1])
+        assert int(va[2]) == int(vb[2])
+    else:
+        for x, y in zip(va, vb):
+            assert abs(float(x) - float(y)) < 1e-9
 PY

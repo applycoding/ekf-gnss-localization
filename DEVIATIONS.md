@@ -4,6 +4,6 @@
 
 Straight-segment heading change is tracked as the net integrated gyro (`∫ ω_m dt`) over the B-window segment rather than `∫ |ω_m| dt`. With bias 0.01 rad/s this removes spurious restarts from the old integral-of-absolute test. Measured init time on seed 1: **9.1 s** (matched), **9.0 s** (urban).
 
-## ROS 2 Humble side-by-side (criterion 19)
+## `robot_localization` side-by-side CSV (criterion 19, PLAN illustrative comparison)
 
-The workflow `.github/workflows/ros2-humble.yml` is a manual-only, non-gating placeholder (`ros2-humble-placeholder`) that builds and tests nothing, and the `ros2/ekf_gnss_demo` package is **not** included in this repository yet. The job exits successfully with a notice; a full `robot_localization` comparison CSV is not produced until that package lands.
+The `ros2/ekf_gnss_demo` package replays the C++ simulator and filter trace on ROS topics (`sim_sensor_node` + `ekf_gnss_demo_node`) and is gated in `ros2-humble.yml`. A live topic-fed fusion node and a `robot_localization` `ekf_node` recording truth/ours/RL in one CSV is **not** wired in v1: the demo nodes replay precomputed `RunSimulation` / `RunScenario` output for deterministic CI rather than closing the ROS graph around two independent estimators. The README does not claim our filter beats `robot_localization`; see PLAN for why any such plot would be illustrative only.

@@ -7,37 +7,54 @@
 #include <iomanip>
 #include <iostream>
 
+namespace {
+
+void emit_parity_full(const ekf::sim::RunResult& result) {
+  std::cout << std::setprecision(17);
+  std::cout << "RMSE " << result.metrics.rmse_horizontal_m << "\n";
+  std::cout << "GNSS_ACCEPTED " << result.trace.gnss_accepted << "\n";
+  std::cout << "GNSS_GATED " << result.trace.gnss_gated << "\n";
+  for (const auto& g : result.trace.gnss) {
+    if (!g.emitted) {
+      continue;
+    }
+    std::cout << "G " << g.t_s << " " << (g.accepted ? 1 : 0) << " "
+              << static_cast<unsigned>(g.update_status) << "\n";
+  }
+  for (const auto& t : result.trace.ticks) {
+    if (!t.filter_initialized) {
+      continue;
+    }
+    std::cout << "S " << t.t_s << " " << t.est_e_m << " " << t.est_n_m << " " << t.est_psi_rad
+              << " " << t.est_v_m_s << " " << t.est_b_g_rad_s << " " << t.est_k << "\n";
+  }
+}
+
+}  // namespace
+
 int main(int argc, char** argv) {
   const char* scenario = "matched";
   std::uint64_t seed = 1;
-  bool parity = false;
+  bool parity_full = false;
   if (argc > 1) {
     scenario = argv[1];
   }
   if (argc > 2) {
-    if (std::strcmp(argv[2], "--parity") == 0) {
-      parity = true;
+    if (std::strcmp(argv[2], "--parity") == 0 || std::strcmp(argv[2], "--parity-full") == 0) {
+      parity_full = true;
     } else {
       seed = static_cast<std::uint64_t>(std::strtoull(argv[2], nullptr, 10));
     }
   }
-  if (argc > 3 && std::strcmp(argv[3], "--parity") == 0) {
-    parity = true;
+  if (argc > 3) {
+    if (std::strcmp(argv[3], "--parity") == 0 || std::strcmp(argv[3], "--parity-full") == 0) {
+      parity_full = true;
+    }
   }
   const ekf::sim::RunResult result = ekf::sim::RunScenario(scenario, seed);
-  if (parity) {
-    std::cout << std::setprecision(17);
-    for (const auto& t : result.trace.ticks) {
-      if (!t.filter_initialized) {
-        continue;
-      }
-      if (std::fmod(t.t_s + 1e-9, 1.0) > 0.02) {
-        continue;
-      }
-      std::cout << t.t_s << " " << t.est_e_m << " " << t.est_n_m << " "
-                << static_cast<unsigned>(result.metrics.gnss_gated) << " "
-                << static_cast<unsigned>(result.metrics.gnss_accepted) << "\n";
-    }
+  if (parity_full) {
+    std::cout << "SCENARIO " << scenario << " SEED " << seed << "\n";
+    emit_parity_full(result);
     return 0;
   }
   const auto& last = result.trace.ticks.back();
