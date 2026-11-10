@@ -34,8 +34,13 @@ install(DIRECTORY launch
   DESTINATION share/${PROJECT_NAME})
 
 if(BUILD_TESTING)
-  find_package(launch_testing_ament_cmake REQUIRED)
-  add_launch_test(test/test_ekf_gnss_demo.launch.py)
+  find_package(ament_cmake_test REQUIRED)
+  install(PROGRAMS test/smoke_topics.sh DESTINATION share/${PROJECT_NAME}/test)
+  ament_add_test(
+    smoke_topics
+    COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/test/smoke_topics.sh"
+    TIMEOUT 120
+  )
 endif()
 
 ament_package()
