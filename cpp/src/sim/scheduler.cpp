@@ -162,7 +162,8 @@ Trace RunSimulation(const ScenarioSpec& spec, std::uint64_t seed, bool gate_enab
           trace.init_time_s = filter.t_s;
         }
 
-        if (filter.lifecycle == ekf::Lifecycle::Initialized) {
+        if (filter.lifecycle == ekf::Lifecycle::Initialized && gres.accepted &&
+            (gres.status == ekf::Status::Ok || gres.status == ekf::Status::Reacquired)) {
           const double err_e = filter.x[0] - truth.pe_m;
           const double err_n = filter.x[1] - truth.pn_m;
           grec.nees_pos = nees_position(filter, err_e, err_n);
