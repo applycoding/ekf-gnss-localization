@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Launch test: includes full stack + RMSE checker (pre-shutdown wait)."""
+"""Launch test: full stack + RMSE checker (Humble active + post-shutdown)."""
 
 from __future__ import annotations
 
@@ -11,17 +11,18 @@ import launch
 import launch_testing
 import launch_testing.actions
 import launch_testing.asserts
-import launch_testing.tools.output
 from ament_index_python.packages import get_package_share_directory
 from launch.actions import ExecuteProcess, IncludeLaunchDescription, TimerAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 
-def generate_test_description() -> launch.LaunchDescription:
+def generate_test_description() -> tuple[launch.LaunchDescription, dict]:
     share = get_package_share_directory("ekf_gnss_demo")
     launch_file = os.path.join(share, "launch", "ekf_gnss_demo.launch.py")
     checker = os.path.join(os.path.dirname(os.path.realpath(__file__)), "check_odom_rmse.py")
-    checker_proc = ExecuteProcess(
+    proc_env = os.environ.copy()
+    proc_env["PYTHONUNBUFFERED"] = "1"
+    check_odom_rmse = ExecuteProcess(
         cmd=[
             sys.executable,
             checker,
@@ -32,6 +33,7 @@ def generate_test_description() -> launch.LaunchDescription:
             "--timeout-s",
             "90.0",
         ],
+        env=proc_env,
         output="screen",
         name="check_odom_rmse",
     )
@@ -45,28 +47,32 @@ def generate_test_description() -> launch.LaunchDescription:
                     "replay_rate_hz": "500.0",
                 }.items(),
             ),
-            TimerAction(period=3.0, actions=[checker_proc]),
+            TimerAction(period=3.0, actions=[check_odom_rmse]),
             launch_testing.actions.ReadyToTest(),
         ]
-    )
+    ), {"check_odom_rmse": check_odom_rmse}
 
 
-@launch_testing.pre_shutdown_test()
-class TestWaitForRmse(unittest.TestCase):
-    def test_wait_for_checker_output(self, proc_output) -> None:
+class TestRmseCheckerActive(unittest.TestCase):
+    """Runs while sim, EKF, and checker are live."""
+
+    def test_rmse_line_on_stdout(self, proc_output, check_odom_rmse) -> None:
         proc_output.assertWaitFor(
-            launch_testing.tools.output.SearchPatternsFound(
-                patterns=[r"RMSE horizontal:"],
-            ),
+            "RMSE horizontal:",
+            process=check_odom_rmse,
             timeout=120.0,
             stream="stdout",
         )
 
+    def test_checker_shuts_down(self, proc_info, check_odom_rmse) -> None:
+        proc_info.assertWaitForShutdown(process=check_odom_rmse, timeout=120.0)
+
 
 @launch_testing.post_shutdown_test()
 class TestEkfGnssLaunch(unittest.TestCase):
-    def test_checker_exit_code(self, proc_info) -> None:
+    def test_checker_exit_code(self, proc_info, check_odom_rmse) -> None:
         launch_testing.asserts.assertExitCodes(
             proc_info,
-            allowable_exit_codes=[0, -2, -15],
+            process=check_odom_rmse,
+            allowable_exit_codes=[0],
         )
