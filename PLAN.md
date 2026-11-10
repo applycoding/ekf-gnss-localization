@@ -44,7 +44,7 @@ Everything is written from first principles. Nothing is copied or translated fro
 - Heading `ψ` is measured counter-clockwise from East (+x). Body frame: x forward, y left, z up (REP-103).
 - GNSS generation order: true ENU position + GNSS errors (in ENU) → ECEF → LLH. The filter converts LLH → ECEF → ENU with the same origin before each update. The vertical channel is ignored (planar filter). Antenna lever arm is exactly zero.
 - WGS84: `a = 6378137 m`, `f = 1/298.257223563`, `e² = f(2 − f)`, `b = a(1 − f) = 6356752.314245179 m`.
-- Forward conversion is closed form. **Inverse conversion is iterative** (latitude fixed-point on `tan φ = z / (p (1 − e² N/(N+h)))`, at most 10 iterations, stop when `|Δφ| < 1e-14 rad`). A one-step Bowring inverse was measured on the box at up to `1.03e-6 m` round-trip error over the test domain, which fails the `1e-6 m` criterion, so it is not used. ECEF `(0,0,0)` returns `InvalidInput`.
+- Forward conversion is closed form. **Inverse conversion is iterative** (latitude fixed-point on `tan φ = z / (p (1 − e² N/(N+h)))`, at most 10 iterations, stop when `|Δφ| < 1e-14 rad`). A one-step Bowring inverse was measured in a local prototype run at up to `1.03e-6 m` round-trip error over the test domain, which fails the `1e-6 m` criterion, so it is not used. ECEF `(0,0,0)` returns `InvalidInput`.
 
 ### State (locked)
 
@@ -64,7 +64,7 @@ Two configuration flags, set per scenario and recorded in every trace:
 - `model_gnss_bias` (default true). When false, `β` rows and columns of `P` are zero, `β` stays 0, and the GNSS model is white with `R = σ_rep² I`.
 - `estimate_wheel_scale` (default true). When false, `k` is fixed at 1 with zero variance.
 
-**Why 8 states and not 5:** verified on the box (see Verification). A 5-state filter that treats the 60 s GNSS error as white, even with `R` inflated to `σ_rep = 2.5 m`, has a Monte Carlo position NEES around 21–27 against an upper bound of 2.59. That is badly overconfident. Augmenting `β` brings the urban position NEES back inside the bounds. The 5-state behaviour is kept as an **ablation** (criterion 14) because it is a useful lesson.
+**Why 8 states and not 5:** verified in a local prototype run (see Verification). A 5-state filter that treats the 60 s GNSS error as white, even with `R` inflated to `σ_rep = 2.5 m`, has a Monte Carlo position NEES around 21–27 against an upper bound of 2.59. That is badly overconfident. Augmenting `β` brings the urban position NEES back inside the bounds. The 5-state behaviour is kept as an **ablation** (criterion 14) because it is a useful lesson.
 
 Observability, stated in the README: heading and gyro bias become observable only from GNSS displacement while moving. At rest, absolute heading is not observable. `k` needs non-zero speed and GNSS. `β` and position are only separated through the motion model, so their split is weakly observable; the cross-covariance handles this honestly.
 
@@ -107,7 +107,7 @@ The truth trajectory is integrated with a **different** integrator (midpoint, 10
 - Gate off (`gate = false`) disables **both** gates. This is the "EKF, gate off" baseline.
 - Every candidate's **pre-gate** NIS is logged with an accepted/rejected flag. Accepted-only NIS is never reported as a consistency statistic (it is truncated by construction).
 - **GNSS reacquisition:** after 20 consecutive gated fixes (2 s), check that their innovations are mutually consistent: every innovation is within `3·√2·σ_meas` of the component-wise median of the 20. If consistent, add `NIS_last · R` to the 2×2 position block of `P`, apply the current fix, increment `reacquisitions` and set status `Reacquired`. If not consistent, clear the window and keep rejecting. Outlier bursts point in random directions and fail the check; a diverged filter sees consistent innovations and passes it.
-- **Wheel lockout:** after 100 consecutive gated wheel samples (2 s), add `y²` to `P[3,3]` and apply the sample. The scripted slip windows are 1 s, so they never trigger this. (A lockout window equal to the slip length was tried on the box and broke NEES consistency; 2 s fixed it.)
+- **Wheel lockout:** after 100 consecutive gated wheel samples (2 s), add `y²` to `P[3,3]` and apply the sample. The scripted slip windows are 1 s, so they never trigger this. (A lockout window equal to the slip length was tried in a local prototype run and broke NEES consistency; 2 s fixed it.)
 - No robust or soft-reweighting mode in v1.
 
 ### Initialization (locked state machine)
@@ -123,7 +123,7 @@ States: `NoFix → Collecting → Initialized`. Also `Reacquired` as a transient
    - `P₀ = diag(σ_p², σ_p², σ_ψ², 0.5², 0.02², 0.03², σ_β², σ_β²)`
    - `σ_p² = 1.5² + σ_β²` (bias model on) or `σ_rep²` (off)
    - `σ_ψ = clamp(3 · σ_meas / |Δ|, 0.05, 0.5) rad`
-   - With the bias model on, `P[p_e, β_e] = P[p_n, β_n] = −σ_β²`, because a fix measures `p + β`. On the box this cross-covariance raised the urban epoch-in-bounds fraction from 0.82–0.89 to 0.94–1.0.
+   - With the bias model on, `P[p_e, β_e] = P[p_n, β_n] = −σ_β²`, because a fix measures `p + β`. In a local prototype run this cross-covariance raised the urban epoch-in-bounds fraction from 0.82–0.89 to 0.94–1.0.
 4. In both scripted scenarios, initialization completes at `t ≈ 8.6–8.7 s` on all 200 seeds tested. This is reported, not assumed: a run that never meets the gate stays `Collecting` and reports it.
 
 ### Time and scheduling
@@ -210,7 +210,7 @@ pybind11 module plus `python/bench/monte_carlo.py` for the README figures. A nat
 
 ## Pinned stack
 
-Checked 2026-11-10 (box `gh api` / `npm view` / PyPI / nodejs.org plus an independent review). Pins are exact. FetchContent uses `GIT_TAG <full SHA>`, or `URL` + `URL_HASH` decided before the first build. Record actual compiler, CMake, Node, npm and apt versions in CI logs.
+Checked 2026-11-10 (local prototype environment: `gh api` / `npm view` / PyPI / nodejs.org plus an independent review). Pins are exact. FetchContent uses `GIT_TAG <full SHA>`, or `URL` + `URL_HASH` decided before the first build. Record actual compiler, CMake, Node, npm and apt versions in CI logs.
 
 | Component | Pin |
 | --- | --- |
@@ -322,11 +322,11 @@ Every call that returns anything other than `Ok`, `Gated` or `Reacquired` leaves
   - after predict: `x = [10.140413209900, −4.923291913823, 0.506, 8.004, 0.01, 1, 0.299900016665, −0.199933344443]`, `P` diagonal `[2.000312380335, 2.000811619665, 0.04000024, 0.25005, 4.000002e-4, 9.00000002e-4, 1, 1]`
   - after wheel `z = 8.1`: `v = 8.081383013426`, `k = 1.002229299247`, `NIS = 0.029709135329`
   - after GNSS `z_ENU = (12.0, −3.5)`: `p = (10.621255435500, −4.423126700443)`, `ψ = 0.507332004748`, `NIS = 1.556809790907`, `P[0,0] = 1.692285622328`, and `P` stays symmetric positive definite (min eigenvalue `> 0`)
-- Jacobian vs central differences (`h = 1e-6`, yaw differences unwrapped): `|F − F_fd| ≤ 1e-7 + 1e-6·|F|` element-wise, on 50 random states including `v = 0`, `v < 0` and `ψ` near `±π`. (Box check: max difference `1.4e-10`.)
-- Geodesy: anchors `(0°,0°,0) → (6378137, 0, 0)`; `(0°,90°,0) → (0, 6378137, 0)`; poles → `(0, 0, ±6356752.314245179)`; Tokyo `(35.6812°, 139.7671°, 40 m) → (−3959690.802569, 3350097.500459, 3699540.124670)`; `(45°, 45°, 1000 m) → (3194919.145061, 3194919.145061, 4488055.515647)`. All within `1e-4 m`; the box cross-checked them against pymap3d 3.x within `1e-9 m`. ENU basis at `(0°,0°)`: east = ECEF +Y, north = +Z, up = +X. 1000 seeded round-trips (lat in `[−89°, 89°]`, h in `[−500, 9000] m`) within `1e-6 m` ECEF and `1e-12 rad` latitude.
+- Jacobian vs central differences (`h = 1e-6`, yaw differences unwrapped): `|F − F_fd| ≤ 1e-7 + 1e-6·|F|` element-wise, on 50 random states including `v = 0`, `v < 0` and `ψ` near `±π`. (Measured in a local prototype run: max difference `1.4e-10`.)
+- Geodesy: anchors `(0°,0°,0) → (6378137, 0, 0)`; `(0°,90°,0) → (0, 6378137, 0)`; poles → `(0, 0, ±6356752.314245179)`; Tokyo `(35.6812°, 139.7671°, 40 m) → (−3959690.802569, 3350097.500459, 3699540.124670)`; `(45°, 45°, 1000 m) → (3194919.145061, 3194919.145061, 4488055.515647)`. All within `1e-4 m`; a local prototype run cross-checked them against pymap3d 3.x within `1e-9 m`. ENU basis at `(0°,0°)`: east = ECEF +Y, north = +Z, up = +X. 1000 seeded round-trips (lat in `[−89°, 89°]`, h in `[−500, 9000] m`) within `1e-6 m` ECEF and `1e-12 rad` latitude.
 - Gates: accept NIS just below `9.210340371976184` and reject just above; same for `6.634896601021214`.
 - Invalid inputs and forced numerical failure (e.g. a non-PD `P`) leave `Filter` bit-identical.
-- Initializer (deterministic): noise-free fixes plus one injected 25 m outlier in window A and one in window B give `|ψ₀ − ψ_true| < 0.02 rad`; a window with a 0.2 rad heading change restarts; non-positive wheel speed never initializes. (Box, random seeds: initial heading error max 0.19 rad, p95 0.12 rad over 200 seeds, consistent with `σ_ψ ≈ 0.2 rad`.)
+- Initializer (deterministic): noise-free fixes plus one injected 25 m outlier in window A and one in window B give `|ψ₀ − ψ_true| < 0.02 rad`; a window with a 0.2 rad heading change restarts; non-positive wheel speed never initializes. (Local prototype run, random seeds: initial heading error max 0.19 rad, p95 0.12 rad over 200 seeds, consistent with `σ_ψ ≈ 0.2 rad`.)
 - No-heap: `tools/check_no_heap.py` passes, and a test binary with replaced global `operator new` / `new[]` / aligned / nothrow variants (all abort) runs Reset → Predict → both updates → invalid paths.
 
 **Scenario tests (seeds 1–5 each; thresholds hold for every seed):** criteria 6–11 and 15.
@@ -346,17 +346,17 @@ Every call that returns anything other than `Ok`, `Gated` or `Reacquired` leaves
 3. The Jacobian finite-difference test passes on all 50 states with the mixed tolerance above.
 4. All geodesy anchors and vectors match within `1e-4 m`; the 1000 round-trips meet `1e-6 m` and `1e-12 rad`; the ENU basis test passes.
 5. Invalid, time-mismatched and numerically failing inputs return the documented status and leave the filter bit-identical.
-6. Matched scenario, seeds 1–5: horizontal RMSE `≤ 1.0 m` **and** `≤ 0.5 ×` raw GNSS RMSE on the same run. (Box: max `0.48 m` over 200 seeds; raw GNSS `2.07–2.19 m`.)
-7. Urban scenario, seeds 1–5: gated RMSE `≤ 4.0 m` **and** `≤ 0.5 ×` the gate-off RMSE. (Box: gated max `2.92 m`; gate-off min `16.2 m`.)
-8. Urban dropout, seeds 1–5: max error during `[50, 75) s` `≤ 8 m`, and error 3.0 s after the first returning fix `≤ 5 m`. (Box max: `4.62 m` and `3.70 m`.)
-9. Dead reckoning (baseline a) error at `t = 90 s` is `> 20 m` while the EKF's is `≤ 4 m`, in both scenarios, seeds 1–5. (Box: DR min `55 m`; EKF max `2.1 m`.)
-10. Matched scenario: `|b̂_g − b| < 0.004 rad/s` at `t = 40 s` for `b ∈ {−0.01, 0, +0.02}`, seeds 1–5. A mutant with bias estimation disabled fails this check for `b = 0.01`. (Box max error `0.0013`.)
-11. Urban: final `|k̂ − 1.02| ≤ 0.015`, seeds 1–5. (Box range `1.010–1.025`.)
-12. Matched Monte Carlo (N = 50): position NEES time-mean inside `[1.484439, 2.591224]` with at least 80% of epochs inside; full NEES time-mean inside `[4.161956, 5.913773]` with at least 70% of epochs inside. (Box over 4 blocks of 50 seeds: position 92–99%, full 83–94%.)
-13. Urban Monte Carlo (N = 50, bias model on): position NEES time-mean inside `[1.484439, 2.591224]` with at least 80% of epochs inside. Full NEES is reported as a diagnostic, not gated. (Box: position 94–100%; full 64–100%, which is why it is not gated.)
-14. Ablation `urban_white_model` (N = 50): position NEES time-mean `> 5.18` (twice the upper bound). This proves the consistency test can fail. (Box: `20.8–26.6`.)
-15. Reacquisition: in the matched scenario, injecting `+20 m` east into the state at `t = 30 s` without touching `P` gives error `< 2 m` within `5 s`, with `reacquisitions ≥ 1`. Unmodified matched and urban runs, seeds 1–50, have `reacquisitions == 0`. (Box: recovered in `1.8–2.1 s`; zero reacquisitions on unmodified runs.)
-16. Matched Monte Carlo: the aggregate pre-gate GNSS rejection rate is within `[0.5%, 2.0%]` (nominal 1%). Urban Monte Carlo outlier recall `≥ 95%` and inlier false-rejection rate `≤ 2.0%` (scored with labels). (Box: matched rejection rate 0.96%; urban recall 100%, false rejection 1.06%.)
+6. Matched scenario, seeds 1–5: horizontal RMSE `≤ 1.0 m` **and** `≤ 0.5 ×` raw GNSS RMSE on the same run. (Measured in a local prototype run: max `0.48 m` over 200 seeds; raw GNSS `2.07–2.19 m`.)
+7. Urban scenario, seeds 1–5: gated RMSE `≤ 4.0 m` **and** `≤ 0.5 ×` the gate-off RMSE. (Measured in a local prototype run: gated max `2.92 m`; gate-off min `16.2 m`.)
+8. Urban dropout, seeds 1–5: max error during `[50, 75) s` `≤ 8 m`, and error 3.0 s after the first returning fix `≤ 5 m`. (Measured in a local prototype run, max: `4.62 m` and `3.70 m`.)
+9. Dead reckoning (baseline a) error at `t = 90 s` is `> 20 m` while the EKF's is `≤ 4 m`, in both scenarios, seeds 1–5. (Measured in a local prototype run: DR min `55 m`; EKF max `2.1 m`.)
+10. Matched scenario: `|b̂_g − b| < 0.004 rad/s` at `t = 40 s` for `b ∈ {−0.01, 0, +0.02}`, seeds 1–5. A mutant with bias estimation disabled fails this check for `b = 0.01`. (Measured in a local prototype run, max error `0.0013`.)
+11. Urban: final `|k̂ − 1.02| ≤ 0.015`, seeds 1–5. (Measured in a local prototype run, range `1.010–1.025`.)
+12. Matched Monte Carlo (N = 50): position NEES time-mean inside `[1.484439, 2.591224]` with at least 80% of epochs inside; full NEES time-mean inside `[4.161956, 5.913773]` with at least 70% of epochs inside. (Measured in a local prototype run over 4 blocks of 50 seeds: position 92–99%, full 83–94%.)
+13. Urban Monte Carlo (N = 50, bias model on): position NEES time-mean inside `[1.484439, 2.591224]` with at least 80% of epochs inside. Full NEES is reported as a diagnostic, not gated. (Measured in a local prototype run: position 94–100%; full 64–100%, which is why it is not gated.)
+14. Ablation `urban_white_model` (N = 50): position NEES time-mean `> 5.18` (twice the upper bound). This proves the consistency test can fail. (Measured in a local prototype run: `20.8–26.6`.)
+15. Reacquisition: in the matched scenario, injecting `+20 m` east into the state at `t = 30 s` without touching `P` gives error `< 2 m` within `5 s`, with `reacquisitions ≥ 1`. Unmodified matched and urban runs, seeds 1–50, have `reacquisitions == 0`. (Measured in a local prototype run: recovered in `1.8–2.1 s`; zero reacquisitions on unmodified runs.)
+16. Matched Monte Carlo: the aggregate pre-gate GNSS rejection rate is within `[0.5%, 2.0%]` (nominal 1%). Urban Monte Carlo outlier recall `≥ 95%` and inlier false-rejection rate `≤ 2.0%` (scored with labels). (Measured in a local prototype run: matched rejection rate 0.96%; urban recall 100%, false rejection 1.06%.)
 17. Determinism holds as specified (in-process bit-identical, `-O0`/`-O2` within `1e-9 m`, WASM vs native within `1e-6 m` with identical gate decisions).
 18. `npm ci && npx tsc --noEmit && npx vitest run && npm run build` pass in `web/`; Playwright passes the assertions above and writes `docs/demo.png`; the Pages workflow deploys the tested `dist` artifact from `main` only after the core and web workflows succeed.
 19. The optional Humble workflow, when run, produces the comparison CSV meeting the coverage check. The README does not claim our filter beats `robot_localization`.
@@ -371,7 +371,7 @@ RTK, carrier phase, raw pseudoranges, tightly coupled GNSS/INS, 3D or 6-DoF INS 
 
 ## Documentation and honesty
 
-README must state: simulation only; scripted unicycle truth (not a vehicle dynamics model); heading unobservable at rest and initialized from GNSS motion; first-order `Q` validated at 100 Hz only; truth gyro bias is constant while the filter allows a small walk; the ablation shows the white-noise model is overconfident; NEES bounds are engineering regression checks; `robot_localization` is a same-information side-by-side, not a benchmark to beat. All thresholds are written as numbers with the box-measured margins, not "tuned until green".
+README must state: simulation only; scripted unicycle truth (not a vehicle dynamics model); heading unobservable at rest and initialized from GNSS motion; first-order `Q` validated at 100 Hz only; truth gyro bias is constant while the filter allows a small walk; the ablation shows the white-noise model is overconfident; NEES bounds are engineering regression checks; `robot_localization` is a same-information side-by-side, not a benchmark to beat. All thresholds are written as numbers with margins measured in a local prototype run, not "tuned until green".
 
 ## License
 
@@ -402,7 +402,7 @@ cd web && npm ci && npx tsc --noEmit && npx vitest run && npm run build && npx p
 - `robot_localization` uses a different state model; its numbers are illustrative.
 - Humble reaches end of life in May 2027.
 
-## Verification already done (2026-11-10, on the box)
+## Verification already done (2026-11-10, local prototype run)
 
 Scripts are in `_proto/` next to this plan (not part of the repo). Python 3 + NumPy 2.5.4 + SciPy 1.18.1, and pymap3d 3.x in a scratch venv for geodesy cross-checks.
 
