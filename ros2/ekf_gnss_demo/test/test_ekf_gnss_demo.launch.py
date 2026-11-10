@@ -12,14 +12,7 @@ import launch_testing
 import launch_testing.actions
 import launch_testing.asserts
 from ament_index_python.packages import get_package_share_directory
-from launch.actions import (
-    ExecuteProcess,
-    IncludeLaunchDescription,
-    RegisterEventHandler,
-    Shutdown,
-    TimerAction,
-)
-from launch.event_handlers import OnProcessExit
+from launch.actions import ExecuteProcess, IncludeLaunchDescription, TimerAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 
@@ -51,10 +44,6 @@ def generate_test_description() -> launch.LaunchDescription:
                 }.items(),
             ),
             TimerAction(period=3.0, actions=[checker_proc]),
-            OnProcessExit(
-                target_action=checker_proc,
-                on_exit=[Shutdown(reason="RMSE checker finished")],
-            ),
             launch_testing.actions.ReadyToTest(),
         ]
     )
@@ -62,5 +51,19 @@ def generate_test_description() -> launch.LaunchDescription:
 
 @launch_testing.post_shutdown_test()
 class TestEkfGnssLaunch(unittest.TestCase):
-    def test_processes_exit_cleanly(self, proc_info: launch_testing.ProcInfoHandler) -> None:
+    def test_checker_exit_code(self, proc_info: launch_testing.ProcInfoHandler) -> None:
+        checker_procs = [
+            p
+            for p in proc_info.processes
+            if any("check_odom_rmse.py" in str(arg) for arg in p.args)
+        ]
+        self.assertTrue(checker_procs, "RMSE checker process not found")
+        for proc in checker_procs:
+            self.assertEqual(
+                proc.returncode,
+                0,
+                msg=f"check_odom_rmse.py failed with code {proc.returncode}",
+            )
+
+    def test_demo_nodes_exit_cleanly(self, proc_info: launch_testing.ProcInfoHandler) -> None:
         launch_testing.asserts.assertExitCodes(proc_info, allowable_exit_codes=[0])

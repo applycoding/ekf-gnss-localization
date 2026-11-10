@@ -9,6 +9,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <builtin_interfaces/msg/time.hpp>
 #include <sensor_msgs/msg/imu.hpp>
+#include <std_msgs/msg/empty.hpp>
 
 #include <cmath>
 #include <cstdint>
@@ -70,6 +71,12 @@ class EkfGnssDemoNode final : public rclcpp::Node {
         "/sim/wheel", 10, std::bind(&EkfGnssDemoNode::on_wheel, this, std::placeholders::_1));
     gnss_sub_ = create_subscription<nav_msgs::msg::Odometry>(
         "/sim/gnss/pose", 10, std::bind(&EkfGnssDemoNode::on_gnss_pose, this, std::placeholders::_1));
+    complete_sub_ = create_subscription<std_msgs::msg::Empty>(
+        "/sim/complete", 10,
+        [this](const std_msgs::msg::Empty::SharedPtr) {
+          RCLCPP_INFO(get_logger(), "ekf_gnss_demo shutting down after /sim/complete");
+          rclcpp::shutdown();
+        });
 
     RCLCPP_INFO(get_logger(), "ekf_gnss_demo live filter scenario=%s", scenario.c_str());
   }
@@ -179,6 +186,7 @@ class EkfGnssDemoNode final : public rclcpp::Node {
   rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr wheel_sub_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr gnss_sub_;
+  rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr complete_sub_;
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_pub_;
 };
