@@ -72,6 +72,7 @@ class EkfGnssDemoNode final : public rclcpp::Node {
     timer_->cancel();
     RCLCPP_INFO(get_logger(), "ekf_gnss_demo replay finished (rmse %.3f m)",
                 result_.metrics.rmse_horizontal_m);
+    rclcpp::shutdown();
   }
 
   ekf::sim::RunResult result_{};

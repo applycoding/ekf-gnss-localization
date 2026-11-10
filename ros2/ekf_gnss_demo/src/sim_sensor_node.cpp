@@ -67,6 +67,8 @@ class SimSensorNode final : public rclcpp::Node {
   void on_timer() {
     if (idx_ >= log_.ticks.size()) {
       timer_->cancel();
+      RCLCPP_INFO(get_logger(), "sim_sensor replay finished");
+      rclcpp::shutdown();
       return;
     }
     const std::size_t tick_ix = idx_++;
