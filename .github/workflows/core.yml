@@ -24,6 +24,8 @@ jobs:
           cmake --build --preset default
 
       - name: Test
+        env:
+          EKF_REQUIRE_WASM_PARITY: "1"
         run: ctest --preset default --output-on-failure
 
       - name: Monte Carlo label

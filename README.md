@@ -36,7 +36,7 @@ cd web && npm ci && npx tsc --noEmit && npx vitest run && npm run build
 
 ## How this was verified
 
-See [docs/verification.md](docs/verification.md) for the full map of PLAN criteria **2–17** to GoogleTest names (`Exact2State`, `FilterFrozen`, `Jacobian`, `Geodesy`, `InvalidInputs`, `Gates`, `Scenario`, `MonteCarlo`/`mc`, `Reacquisition`, `Determinism`, `NoHeapOperator`), plus `web.yml` (Vitest + Playwright) and `core.yml` (`tools/o0_o2_parity.sh`, `tools/check_no_heap.py`). NEES Monte Carlo bounds are engineering regression checks, not formal χ² tests. Gaps: [DEVIATIONS.md](DEVIATIONS.md) (init timing, ROS package not yet in-tree).
+See [docs/verification.md](docs/verification.md) for the full map of PLAN criteria **2–17** to GoogleTest names (`Exact2State`, `FilterFrozen`, `Jacobian`, `Geodesy`, `InvalidInputs`, `Gates`, `Scenario`, `MonteCarlo`/`mc`, `Reacquisition`, `Determinism`, `NoHeapOperator`), plus `web.yml` (WASM parity script, Vitest + Playwright) and `core.yml` (`EKF_REQUIRE_WASM_PARITY`, `tools/o0_o2_parity.sh`, `tools/check_no_heap.py`). `pages.yml` deploys only after **both** `core` and `web` succeed on the same commit. NEES Monte Carlo bounds are engineering regression checks, not formal χ² tests. Gaps: [DEVIATIONS.md](DEVIATIONS.md) (init timing, ROS package not yet in-tree).
 
 ## Idea credits
 

@@ -1,13 +1,32 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "ekf_sim/scenario.hpp"
 
-#include <cmath>
 #include <cstdlib>
 #include <fstream>
-#include <sstream>
 #include <string>
 
 #include <gtest/gtest.h>
+
+#ifndef EKF_SOURCE_DIR
+#define EKF_SOURCE_DIR "."
+#endif
+
+namespace {
+
+std::string wasm_js_path() {
+  return std::string(EKF_SOURCE_DIR) + "/web/public/ekf.js";
+}
+
+std::string wasm_binary_path() {
+  return std::string(EKF_SOURCE_DIR) + "/web/public/ekf.wasm";
+}
+
+bool require_wasm_parity() {
+  const char* flag = std::getenv("EKF_REQUIRE_WASM_PARITY");
+  return flag != nullptr && flag[0] == '1';
+}
+
+}  // namespace
 
 TEST(Determinism, SameSeedSameRmse) {
   const auto a = ekf::sim::RunScenario("matched", 7U);
@@ -28,11 +47,16 @@ TEST(Determinism, SameSeedBitIdenticalTrace) {
 }
 
 TEST(Determinism, WasmMatchesNativeParity) {
-  std::ifstream wasm("web/public/ekf.wasm", std::ios::binary);
-  std::ifstream js("web/public/ekf.js");
+  std::ifstream wasm(wasm_binary_path(), std::ios::binary);
+  std::ifstream js(wasm_js_path());
   if (!wasm.good() || !js.good()) {
+    if (require_wasm_parity()) {
+      FAIL() << "WASM artifacts missing at " << wasm_binary_path();
+    }
     GTEST_SKIP() << "prebuilt WASM artifacts missing";
   }
-  const int code = std::system("node tools/wasm_native_parity.mjs >/dev/null");
+  const std::string cmd =
+      "node " + std::string(EKF_SOURCE_DIR) + "/tools/wasm_native_parity.mjs >/dev/null";
+  const int code = std::system(cmd.c_str());
   ASSERT_EQ(code, 0);
 }

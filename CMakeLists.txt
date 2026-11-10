@@ -13,6 +13,7 @@ add_library(ekf_core STATIC
   cpp/src/core/geodesy.cpp
   cpp/src/core/filter.cpp
   cpp/src/core/initializer.cpp
+  cpp/src/core/linear2.cpp
 )
 target_include_directories(ekf_core PUBLIC cpp/include)
 target_compile_options(ekf_core PRIVATE
@@ -80,7 +81,7 @@ if(EKF_BUILD_TESTS)
   gtest_discover_tests(test_unit)
 
   add_executable(test_exact_2state cpp/test/test_exact_2state.cpp)
-  target_link_libraries(test_exact_2state PRIVATE GTest::gtest_main)
+  target_link_libraries(test_exact_2state PRIVATE ekf_core GTest::gtest_main)
   gtest_discover_tests(test_exact_2state)
 
   add_executable(test_filter_frozen cpp/test/test_filter_frozen.cpp)
@@ -110,7 +111,10 @@ if(EKF_BUILD_TESTS)
   target_link_libraries(test_monte_carlo PRIVATE ekf_core ekf_sim GTest::gtest_main)
   gtest_discover_tests(test_monte_carlo PROPERTIES LABELS "mc")
 
-  ekf_gtest(test_determinism cpp/test/test_determinism.cpp)
+  add_executable(test_determinism cpp/test/test_determinism.cpp)
+  target_compile_definitions(test_determinism PRIVATE EKF_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+  target_link_libraries(test_determinism PRIVATE ekf_sim GTest::gtest_main)
+  gtest_discover_tests(test_determinism WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   add_executable(test_no_heap_operator cpp/test/test_no_heap_operator.cpp)
   target_link_libraries(test_no_heap_operator PRIVATE ekf_core)
@@ -130,7 +134,7 @@ if(EKF_BUILD_WASM)
   target_link_options(ekf_wasm PRIVATE
     "-sMODULARIZE=1"
     "-sEXPORT_NAME=createEkfModule"
-    "-sENVIRONMENT=web"
+    "-sENVIRONMENT=web,node"
     "-sALLOW_MEMORY_GROWTH=1"
     "-sEXPORTED_FUNCTIONS=['_malloc','_free']"
     "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','getValue','setValue','HEAPF64']"

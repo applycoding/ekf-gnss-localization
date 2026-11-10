@@ -377,7 +377,7 @@ UpdateResult UpdateWheel(Filter& f, const Config& cfg, const WheelSample& w) {
 
 UpdateResult UpdateGnss(Filter& f, const Config& cfg, const Origin& origin,
                         const GnssSample& gnss) {
-  const Filter backup = f;
+  Filter backup = f;
   UpdateResult res{};
   res.nis_pre_gate = std::numeric_limits<double>::quiet_NaN();
 
@@ -436,8 +436,8 @@ UpdateResult UpdateGnss(Filter& f, const Config& cfg, const Origin& origin,
     S[1][1] = f.P[9] + R;
   }
 
-  const double innov[2] = {z[0] - (f.x[0] + (cfg.model_gnss_bias ? f.x[6] : 0.0)),
-                           z[1] - (f.x[1] + (cfg.model_gnss_bias ? f.x[7] : 0.0))};
+  double innov[2] = {z[0] - (f.x[0] + (cfg.model_gnss_bias ? f.x[6] : 0.0)),
+                     z[1] - (f.x[1] + (cfg.model_gnss_bias ? f.x[7] : 0.0))};
 
   double Sinv_innov[2];
   if (!cholesky_solve_2(S, innov, Sinv_innov)) {
@@ -476,8 +476,12 @@ UpdateResult UpdateGnss(Filter& f, const Config& cfg, const Origin& origin,
         }
       }
       if (consistent) {
-        f.P[0] += nis * R;
-        f.P[9] += nis * R;
+        const double inflate = nis * R;
+        f.P[0] += inflate;
+        f.P[9] += inflate;
+        innov[0] = med[0];
+        innov[1] = med[1];
+        std::memcpy(backup.P, f.P, sizeof(f.P));
         apply = true;
         ++f.reacquisitions;
         f.gnss_consec_gated = 0;
@@ -496,6 +500,18 @@ UpdateResult UpdateGnss(Filter& f, const Config& cfg, const Origin& origin,
   } else {
     f.gnss_consec_gated = 0;
     f.gated_count = 0;
+  }
+
+  if (cfg.model_gnss_bias) {
+    S[0][0] = f.P[0] + f.P[6] + f.P[48] + f.P[54] + R;
+    S[0][1] = f.P[1] + f.P[7] + f.P[49] + f.P[55];
+    S[1][0] = f.P[8] + f.P[14] + f.P[56] + f.P[62];
+    S[1][1] = f.P[9] + f.P[15] + f.P[57] + f.P[63] + R;
+  } else {
+    S[0][0] = f.P[0] + R;
+    S[0][1] = f.P[1];
+    S[1][0] = f.P[8];
+    S[1][1] = f.P[9] + R;
   }
 
   double K[8][2];

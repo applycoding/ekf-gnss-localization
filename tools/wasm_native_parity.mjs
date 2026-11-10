@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
+import vm from "node:vm";
 import { createRequire } from "node:module";
+import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -8,6 +10,7 @@ const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const wasmJs = path.join(root, "web/public/ekf.js");
 const wasmPath = path.join(root, "web/public/ekf.wasm");
 const cli = path.join(root, "build/default/ekf_cli");
+const wasmDir = path.dirname(wasmJs);
 
 const nativeOut = spawnSync(cli, ["matched", "1", "--parity"], { encoding: "utf8" });
 if (nativeOut.status !== 0) {
@@ -20,16 +23,39 @@ const nativeRows = nativeOut.stdout
   .filter(Boolean)
   .map((line) => line.split(" ").map(Number));
 
-const modText = await import("node:fs/promises").then((fs) => fs.readFile(wasmJs, "utf8"));
-const createEkfModule = await (async () => {
-  const require = createRequire(import.meta.url);
-  const Module = { locateFile: (p) => path.join(root, "web/public", p) };
-  const runner = new Function("Module", "require", `${modText}\nreturn createEkfModule;`);
-  return runner(Module, require);
-})();
+const require = createRequire(wasmJs);
+const glue = await readFile(wasmJs, "utf8");
+const sandbox = {
+  module: { exports: {} },
+  exports: {},
+  require,
+  __dirname: wasmDir,
+  __filename: wasmJs,
+  console,
+  process,
+  Buffer,
+  setImmediate,
+  clearImmediate,
+  URL,
+  TextDecoder: globalThis.TextDecoder,
+  TextEncoder: globalThis.TextEncoder,
+  WebAssembly,
+  crypto: globalThis.crypto,
+  fetch: globalThis.fetch,
+  atob: globalThis.atob,
+  btoa: globalThis.btoa,
+};
+sandbox.global = sandbox;
+sandbox.globalThis = sandbox;
+vm.runInNewContext(glue, sandbox, { filename: wasmJs });
+const createEkfModule = sandbox.module.exports.default ?? sandbox.module.exports;
+if (typeof createEkfModule !== "function") {
+  console.error("failed to load createEkfModule from", wasmJs);
+  process.exit(1);
+}
 
 const factory = await createEkfModule({
-  locateFile: (p) => path.join(root, "web/public", p),
+  locateFile: (p) => path.join(wasmDir, p),
 });
 const out = factory.runScenario("matched", 1);
 const wasmTicks = out.ticks.filter((t) => t.init);

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+import { neesSummaryLabel } from "./neesDisplay";
 
 type WasmModule = {
   runScenario: (name: string, seed: number) => {
@@ -21,9 +22,6 @@ declare global {
 const app = document.getElementById("app")!;
 const runBtn = document.getElementById("run") as HTMLButtonElement;
 const errEl = document.getElementById("load-error") as HTMLParagraphElement;
-
-const POS_NEES_LOW = 0.050636;
-const POS_NEES_HIGH = 7.377759;
 
 function setState(s: string) {
   app.dataset.state = s;
@@ -100,10 +98,7 @@ async function runSimulation(mod: WasmModule) {
   const meanNe = neesVals.length
     ? neesVals.reduce((a, b) => a + b, 0) / neesVals.length
     : Number.NaN;
-  const label =
-    scenario === "urban_white_model"
-      ? "diagnostic: model mismatch"
-      : `NEES mean ${meanNe.toFixed(2)} (ref ${POS_NEES_LOW.toFixed(2)}–${POS_NEES_HIGH.toFixed(2)})`;
+  const label = neesSummaryLabel(scenario, meanNe);
   (document.getElementById("nees-label")!).textContent = label;
   const map = document.getElementById("map") as HTMLCanvasElement;
   const errCanvas = document.getElementById("error") as HTMLCanvasElement;

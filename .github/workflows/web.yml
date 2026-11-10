@@ -32,6 +32,7 @@ jobs:
           cmake --build --preset wasm
           mkdir -p web/public
           cp build/wasm/ekf.js build/wasm/ekf.wasm web/public/
+          node tools/wasm_native_parity.mjs
 
       - name: Web CI
         working-directory: web

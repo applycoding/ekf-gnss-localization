@@ -5,7 +5,7 @@ on:
   push:
     branches: [main]
   workflow_run:
-    workflows: [web]
+    workflows: [core, web]
     types: [completed]
     branches: [main]
 
@@ -36,21 +36,29 @@ jobs:
         with:
           script: |
             const sha = context.payload.workflow_run.head_sha;
-            const coreRuns = await github.rest.actions.listWorkflowRuns({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id: 'core.yml',
-              head_sha: sha,
-              status: 'completed',
-              per_page: 10
-            });
-            const coreOk = coreRuns.data.workflow_runs.some(r => r.conclusion === 'success');
-            core.setOutput('deploy_ok', coreOk ? 'true' : 'false');
+            async function lastSuccess(workflowFile) {
+              const runs = await github.rest.actions.listWorkflowRuns({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: workflowFile,
+                head_sha: sha,
+                status: 'completed',
+                per_page: 20
+              });
+              return runs.data.workflow_runs.find((r) => r.conclusion === 'success');
+            }
+            const coreRun = await lastSuccess('core.yml');
+            const webRun = await lastSuccess('web.yml');
+            const deployOk = Boolean(coreRun && webRun);
+            core.setOutput('deploy_ok', deployOk ? 'true' : 'false');
+            if (webRun) {
+              core.setOutput('web_run_id', String(webRun.id));
+            }
 
       - name: Require core and web green on same commit
         if: steps.gate.outputs.deploy_ok != 'true'
         run: |
-          echo "core workflow not successful for this commit; skip Pages deploy"
+          echo "core and web must both succeed on ${GITHUB_SHA}; skip Pages deploy"
 
       - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         if: steps.gate.outputs.deploy_ok == 'true'
@@ -58,7 +66,7 @@ jobs:
           name: web-dist
           path: dist
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ steps.gate.outputs.web_run_id }}
 
       - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
         if: steps.gate.outputs.deploy_ok == 'true'
