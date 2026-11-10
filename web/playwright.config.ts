@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({

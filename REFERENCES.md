@@ -46,7 +46,7 @@ Licences were checked on 2026-11-10 against each project's actual licence file (
 
 - URL: https://github.com/geospace-code/pymap3d (HEAD `033895e2f1cf`, 2026-06-22)
 - Licence: **BSD-2-Clause** (SciVision, Nievinski, Kleder notices). Raw: https://raw.githubusercontent.com/geospace-code/pymap3d/main/LICENSE
-- Use: an independent oracle on the planning box. The geodesy vectors in PLAN.md agree with pymap3d 3.x within 1e-9 m. The repo may use it as an optional dev-only check in `python/requirements-dev.txt`. It is never a runtime dependency.
+- Use: an independent oracle during planning. The geodesy vectors in PLAN.md agree with pymap3d 3.x within 1e-9 m. The repo may use it as an optional dev-only check in `python/requirements-dev.txt`. It is never a runtime dependency.
 
 ### 6. rlabbe/filterpy
 
@@ -62,7 +62,7 @@ Licences were checked on 2026-11-10 against each project's actual licence file (
 
 ## Background reading (not code)
 
-- Y. Bar-Shalom, X. R. Li, T. Kirubarajan, *Estimation with Applications to Tracking and Navigation*, Wiley, 2001 — the filter-consistency chapter (NEES/NIS chi-square tests). The maths is paraphrased in our own words; no text or figures are copied.
+- Y. Bar-Shalom, X. R. Li, T. Kirubarajan, *Estimation with Applications to Tracking and Navigation*, Wiley, 2001 (doi:10.1002/0471221279, ISBN 978-0-471-41655-5) — the filter-consistency chapter (NEES/NIS chi-square tests). The maths is paraphrased in our own words; no text or figures are copied.
 - R. Labbe, *Kalman and Bayesian Filters in Python* (https://github.com/rlabbe/Kalman-and-Bayesian-Filters-in-Python). Its `license.html` text and link disagree (BY-NC-SA 4.0 text vs a BY 4.0 link), so it is reading only. Nothing is reused.
 
 ## Looked at, excluded as code references

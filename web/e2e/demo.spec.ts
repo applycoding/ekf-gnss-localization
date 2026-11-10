@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { test, expect } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
