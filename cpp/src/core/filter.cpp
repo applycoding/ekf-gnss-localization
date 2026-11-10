@@ -117,7 +117,11 @@ Status Predict(Filter& f, const Config& cfg, const ImuSample& imu, double dt_s) 
 
   f.x[0] += v * c * dt_s;
   f.x[1] += v * s * dt_s;
-  f.x[2] = WrapPi(f.x[2] + (imu.gyro_z_rad_s - f.x[4]) * dt_s);
+  if (cfg.estimate_gyro_bias) {
+    f.x[2] = WrapPi(f.x[2] + (imu.gyro_z_rad_s - f.x[4]) * dt_s);
+  } else {
+    f.x[2] = WrapPi(f.x[2] + imu.gyro_z_rad_s * dt_s);
+  }
   f.x[3] += imu.accel_x_m_s2 * dt_s;
 
   const double phi =
@@ -139,7 +143,9 @@ Status Predict(Filter& f, const Config& cfg, const ImuSample& imu, double dt_s) 
   F[0 * 8 + 3] = c * dt_s;
   F[1 * 8 + 2] = v * c * dt_s;
   F[1 * 8 + 3] = s * dt_s;
-  F[2 * 8 + 4] = -dt_s;
+  if (cfg.estimate_gyro_bias) {
+    F[2 * 8 + 4] = -dt_s;
+  }
   if (cfg.model_gnss_bias) {
     F[6 * 8 + 6] = phi;
     F[7 * 8 + 7] = phi;
@@ -172,7 +178,9 @@ Status Predict(Filter& f, const Config& cfg, const ImuSample& imu, double dt_s) 
   Pnew[1 * 8 + 1] += 0.0;
   Pnew[2 * 8 + 2] += cfg.q_gyro * dt_s;
   Pnew[3 * 8 + 3] += cfg.q_accel * dt_s;
-  Pnew[4 * 8 + 4] += cfg.q_bias * dt_s;
+  if (cfg.estimate_gyro_bias) {
+    Pnew[4 * 8 + 4] += cfg.q_bias * dt_s;
+  }
   if (cfg.estimate_wheel_scale) {
     Pnew[5 * 8 + 5] += cfg.q_scale * dt_s;
   }
@@ -271,13 +279,14 @@ UpdateResult joseph_scalar_update(Filter& f, const Config& cfg, int state_idx, d
       K[i] = f.P[i * 8 + state_idx] / S;
     }
   }
+  if (!cfg.estimate_gyro_bias) {
+    K[4] = 0.0;
+  }
 
   for (int i = 0; i < 8; ++i) {
     f.x[i] += K[i] * y;
   }
-  if (state_idx == 2 || true) {
-    f.x[2] = WrapPi(f.x[2]);
-  }
+  f.x[2] = WrapPi(f.x[2]);
 
   double IKH[64];
   for (int i = 0; i < 8; ++i) {
@@ -504,6 +513,10 @@ UpdateResult UpdateGnss(Filter& f, const Config& cfg, const Origin& origin,
     K[i][0] = sol[0];
     K[i][1] = sol[1];
   }
+  if (!cfg.estimate_gyro_bias) {
+    K[4][0] = 0.0;
+    K[4][1] = 0.0;
+  }
 
   for (int i = 0; i < 8; ++i) {
     f.x[i] += K[i][0] * innov[0] + K[i][1] * innov[1];
@@ -568,6 +581,92 @@ UpdateResult UpdateGnss(Filter& f, const Config& cfg, const Origin& origin,
   res.status = res.status == Status::Reacquired ? Status::Reacquired : Status::Ok;
   res.accepted = true;
   return res;
+}
+
+void PredictJacobian(const Filter& f, const Config& cfg, double dt_s, double F_out[64]) {
+  std::memset(F_out, 0, 64 * sizeof(double));
+  for (int i = 0; i < 8; ++i) {
+    F_out[i * 8 + i] = 1.0;
+  }
+  const double psi = f.x[2];
+  const double v = f.x[3];
+  const double s = std::sin(psi);
+  const double c = std::cos(psi);
+  F_out[0 * 8 + 2] = -v * s * dt_s;
+  F_out[0 * 8 + 3] = c * dt_s;
+  F_out[1 * 8 + 2] = v * c * dt_s;
+  F_out[1 * 8 + 3] = s * dt_s;
+  if (cfg.estimate_gyro_bias) {
+    F_out[2 * 8 + 4] = -dt_s;
+  }
+  if (cfg.model_gnss_bias) {
+    const double phi = std::exp(-dt_s / cfg.gnss_bias_tau_s);
+    F_out[6 * 8 + 6] = phi;
+    F_out[7 * 8 + 7] = phi;
+  }
+}
+
+namespace {
+
+double jacobi_eigen_min_8(const double P[64]) {
+  double a[8][8];
+  for (int i = 0; i < 8; ++i) {
+    for (int j = 0; j < 8; ++j) {
+      a[i][j] = 0.5 * (P[i * 8 + j] + P[j * 8 + i]);
+    }
+  }
+  for (int sweep = 0; sweep < 40; ++sweep) {
+    double off = 0.0;
+    for (int i = 0; i < 8; ++i) {
+      for (int j = i + 1; j < 8; ++j) {
+        off += a[i][j] * a[i][j];
+      }
+    }
+    if (off < 1e-30) {
+      break;
+    }
+    for (int p = 0; p < 7; ++p) {
+      for (int q = p + 1; q < 8; ++q) {
+        const double apq = a[p][q];
+        if (std::abs(apq) < 1e-18) {
+          continue;
+        }
+        const double app = a[p][p];
+        const double aqq = a[q][q];
+        const double tau = (aqq - app) / (2.0 * apq);
+        const double t = (tau >= 0.0 ? 1.0 : -1.0) / (std::abs(tau) + std::sqrt(1.0 + tau * tau));
+        const double c = 1.0 / std::sqrt(1.0 + t * t);
+        const double s = t * c;
+        for (int k = 0; k < 8; ++k) {
+          if (k != p && k != q) {
+            const double akp = a[k][p];
+            const double akq = a[k][q];
+            a[k][p] = akp * c - akq * s;
+            a[p][k] = a[k][p];
+            a[k][q] = akq * c + akp * s;
+            a[q][k] = a[k][q];
+          }
+        }
+        const double new_pp = c * c * app - 2.0 * s * c * apq + s * s * aqq;
+        const double new_qq = s * s * app + 2.0 * s * c * apq + c * c * aqq;
+        a[p][p] = new_pp;
+        a[q][q] = new_qq;
+        a[p][q] = 0.0;
+        a[q][p] = 0.0;
+      }
+    }
+  }
+  double lambda_min = a[0][0];
+  for (int i = 1; i < 8; ++i) {
+    lambda_min = std::min(lambda_min, a[i][i]);
+  }
+  return lambda_min;
+}
+
+}  // namespace
+
+double MinEigenvalueP(const double P[64]) {
+  return jacobi_eigen_min_8(P);
 }
 
 }  // namespace ekf

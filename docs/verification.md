@@ -1,27 +1,28 @@
 # Verification map
 
-| # | Criterion | Tests / evidence |
+| # | Criterion | ctest / CI evidence |
 | --- | --- | --- |
-| 1 | Core configure/build/ctest | `core.yml`, `ctest --preset default` |
-| 2 | 2/8-state examples | `FilterFrozen.PredictWheelGnss` (predict + wheel + GNSS golden) |
-| 3 | Jacobian FD | planned in `test_unit` |
-| 4 | Geodesy | planned in `test_unit` |
-| 5 | Invalid inputs | planned in `test_unit` |
+| 1 | Core build + `ctest` | `core.yml`; `ctest --preset default` |
+| 2 | 2-state + 8-state frozen | `Exact2State.PredictUpdateJoseph`; `FilterFrozen.PredictWheelGnss` |
+| 3 | Jacobian FD | `Jacobian.CentralDifferenceFiftyStates` |
+| 4 | Geodesy anchors + round-trips + ENU basis | `Geodesy.*` |
+| 5 | Invalid / numerical backup | `InvalidInputs.*` |
 | 6 | Matched RMSE | `Scenario.MatchedCriteriaSeeds1to5` |
-| 7 | Urban RMSE | `Scenario.UrbanCriteriaSeeds1to5` |
+| 7 | Urban gated RMSE | `Scenario.UrbanCriteriaSeeds1to5` |
 | 8 | Urban dropout | `Scenario.UrbanCriteriaSeeds1to5` |
-| 9 | DR vs EKF @ 90s | `Scenario.UrbanCriteriaSeeds1to5`, matched |
-| 10 | Gyro bias | `Scenario.MatchedCriteriaSeeds1to5` |
-| 11 | Wheel scale | `Scenario.UrbanCriteriaSeeds1to5` |
-| 12 | Matched MC NEES | `MonteCarlo.MatchedPositionNeessN50` |
-| 13 | Urban MC NEES | `MonteCarlo.UrbanPositionNeessN50` |
+| 9 | DR vs EKF @ 90 s (both scenarios) | `Scenario.MatchedCriteriaSeeds1to5`, `Scenario.UrbanCriteriaSeeds1to5` |
+| 10 | Gyro bias + mutant | `Scenario.MatchedGyroBiasThreeValuesSeeds1to5`, `Scenario.MatchedGyroBiasMutantFailsFor01` |
+| 11 | Wheel scale urban | `Scenario.UrbanCriteriaSeeds1to5` |
+| 12 | Matched MC position + full NEES | `MonteCarlo.MatchedPositionNeessN50`, `MonteCarlo.MatchedFullNeessN50` |
+| 13 | Urban MC position NEES | `MonteCarlo.UrbanPositionNeessN50` |
 | 14 | White-model ablation | `MonteCarlo.UrbanWhiteModelFailsNeessN50` |
-| 15 | Reacquisition | not yet automated |
-| 16 | Rejection rates | not yet automated |
-| 17 | Determinism | `Determinism.SameSeedSameRmse`, `core.yml` O0/O2 job |
-| 18 | Web CI | `web.yml`, Playwright `e2e/demo.spec.ts`, `docs/demo.png` |
-| 19 | ROS Humble | optional workflow not included in this branch |
-| 20 | License/NOTICE/SPDX | `LICENSE` hash, `NOTICE`, headers |
+| 15 | Reacquisition | `Reacquisition.MatchedInjectEast20m`, `Reacquisition.UnmodifiedSeedsHaveZeroReacquisitions` |
+| 16 | Rejection / recall | `MonteCarlo.MatchedGnssRejectionRateN50`, `MonteCarlo.UrbanOutlierRecallAndFalseRejectN50` |
+| 17 | Determinism | `Determinism.SameSeedBitIdenticalTrace`, `Determinism.O0O2Parity`; `Determinism.WasmMatchesNativeParity` when `web/public/ekf.wasm` exists |
+| 18 | Web + Pages gate | `web.yml`; Vitest `web/tests/smoke.test.ts`; Playwright `e2e/demo.spec.ts`; `pages.yml` checks green `core` on same SHA |
+| 19 | ROS Humble | `ros2-humble.yml` (placeholder); see `DEVIATIONS.md` |
+| 20 | LICENSE / NOTICE / SPDX | `LICENSE` SHA-256; `NOTICE`; SPDX headers |
 | 21 | README honesty | `README.md` |
-| 22 | Git authorship | `git log` on branch |
-| 23 | No heap | `tools/check_no_heap.py`, `NoHeapOperator.FilterReset` |
+| 22 | Git authorship | branch `git log` |
+| 23 | No heap | `tools/check_no_heap.py`; `NoHeapOperator.FilterStepsWithoutAlloc` |
+| — | Gate thresholds | `Gates.WheelThreshold`, `Gates.GnssThreshold` |

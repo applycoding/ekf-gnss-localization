@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: Apache-2.0
+name: ros2-humble
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 8 * * 1"
+
+jobs:
+  humble-placeholder:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: ROS package status
+        run: |
+          if [ ! -d ros2/ekf_gnss_demo ]; then
+            echo "::notice::ros2/ekf_gnss_demo is not in this repository; see DEVIATIONS.md."
+            exit 0
+          fi
+          echo "ROS demo present — colcon build not wired in this placeholder job."

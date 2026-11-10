@@ -85,6 +85,7 @@ struct Config {
   double gnss_bias_tau_s;
   bool model_gnss_bias;
   bool estimate_wheel_scale;
+  bool estimate_gyro_bias;
   bool gate;
 };
 

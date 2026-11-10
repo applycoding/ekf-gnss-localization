@@ -21,6 +21,7 @@ ekf::Config frozen_cfg() {
   c.gnss_bias_tau_s = 60.0;
   c.model_gnss_bias = true;
   c.estimate_wheel_scale = true;
+  c.estimate_gyro_bias = true;
   c.gate = false;
   return c;
 }
@@ -64,8 +65,17 @@ TEST(FilterFrozen, PredictWheelGnss) {
   EXPECT_NEAR(f.x[1], -4.923291913823, 1e-9);
   EXPECT_NEAR(f.x[2], 0.506, 1e-9);
   EXPECT_NEAR(f.x[3], 8.004, 1e-9);
+  EXPECT_NEAR(f.x[6], 0.299900016665, 1e-9);
+  EXPECT_NEAR(f.x[7], -0.199933344443, 1e-9);
   EXPECT_NEAR(f.P[0], 2.000312380335, 1e-9);
   EXPECT_NEAR(f.P[9], 2.000811619665, 1e-9);
+  EXPECT_NEAR(f.P[18], 0.04000024, 1e-9);
+  EXPECT_NEAR(f.P[27], 0.25005, 1e-9);
+  EXPECT_NEAR(f.P[36], 4.000002e-4, 1e-9);
+  EXPECT_NEAR(f.P[45], 9.00000002e-4, 1e-9);
+  EXPECT_NEAR(f.P[54], 1.0, 1e-9);
+  EXPECT_NEAR(f.P[63], 1.0, 1e-9);
+  EXPECT_GT(ekf::MinEigenvalueP(f.P), 0.0);
 
   ekf::WheelSample wheel{0.02, 8.1};
   const ekf::UpdateResult wres = ekf::UpdateWheel(f, cfg, wheel);
@@ -91,4 +101,5 @@ TEST(FilterFrozen, PredictWheelGnss) {
   EXPECT_NEAR(f.x[2], 0.507332004748, 1e-9);
   EXPECT_NEAR(gres.nis_pre_gate, 1.556809790907, 1e-9);
   EXPECT_NEAR(f.P[0], 1.692285622328, 1e-9);
+  EXPECT_GT(ekf::MinEigenvalueP(f.P), 0.0);
 }

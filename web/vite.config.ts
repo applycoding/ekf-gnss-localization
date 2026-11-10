@@ -10,5 +10,8 @@ export default defineConfig({
   test: {
     environment: "node",
     exclude: ["e2e/**", "node_modules/**"],
+    env: {
+      BASE_URL: "/ekf-gnss-localization/",
+    },
   },
 });

@@ -33,4 +33,10 @@ UpdateResult UpdateGnss(Filter& f, const Config& cfg, const Origin& origin,
 
 void FilterMemcpy(Filter& dst, const Filter& src);
 
+/** State-transition Jacobian F for an initialized filter (predict linearization). */
+void PredictJacobian(const Filter& f, const Config& cfg, double dt_s, double F_out[64]);
+
+/** Smallest eigenvalue of symmetric 8×8 P (for PD checks in tests). */
+double MinEigenvalueP(const double P[64]);
+
 }  // namespace ekf

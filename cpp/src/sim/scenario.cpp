@@ -23,6 +23,7 @@ ekf::Config DefaultFilterConfig() {
   cfg.gnss_bias_tau_s = kGnssBiasTauS;
   cfg.model_gnss_bias = true;
   cfg.estimate_wheel_scale = true;
+  cfg.estimate_gyro_bias = true;
   cfg.gate = true;
   return cfg;
 }

@@ -101,6 +101,7 @@ Trace RunSimulation(const ScenarioSpec& spec, std::uint64_t seed, bool gate_enab
   Rng rng(seed);
   SensorSimulator sensors(spec, rng, origin);
   TruthState truth{};
+  bool inject_done = false;
 
   for (int i = 0; i < kNumTicks; ++i) {
   const double t_s = i * kDtS;
@@ -143,6 +144,12 @@ Trace RunSimulation(const ScenarioSpec& spec, std::uint64_t seed, bool gate_enab
     grec.t_s = t_s;
     grec.truth_e_m = truth.pe_m;
     grec.truth_n_m = truth.pn_m;
+
+    if (!inject_done && spec.inject_time_s >= 0.0 &&
+        filter.lifecycle == ekf::Lifecycle::Initialized && t_s + 1e-9 >= spec.inject_time_s) {
+      filter.x[0] += spec.inject_e_m;
+      inject_done = true;
+    }
 
     if (i % 10 == 0) {
       ekf::GnssSample gnss{};

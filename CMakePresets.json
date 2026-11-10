@@ -15,8 +15,6 @@
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_CXX_COMPILER": "g++-13",
         "EKF_BUILD_TESTS": "ON",
-        "EKF_BUILD_PYTHON": "OFF",
-        "EKF_BUILD_ROS": "OFF",
         "EKF_BUILD_WASM": "OFF"
       }
     },
@@ -29,8 +27,6 @@
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_TOOLCHAIN_FILE": "$env{EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake",
         "EKF_BUILD_TESTS": "OFF",
-        "EKF_BUILD_PYTHON": "OFF",
-        "EKF_BUILD_ROS": "OFF",
         "EKF_BUILD_WASM": "ON"
       }
     }

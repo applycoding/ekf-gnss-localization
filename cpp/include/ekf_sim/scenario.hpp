@@ -27,6 +27,9 @@ struct ScenarioSpec {
   double multipath_probability = 0.0;
   SlipWindow slip_windows[2]{};
   int slip_window_count = 0;
+  /** When inject_time_s >= 0 and filter is initialized, add inject_e_m to x[0] once. */
+  double inject_time_s = -1.0;
+  double inject_e_m = 0.0;
 };
 
 /** Load scenario JSON from a file path (repo scenarios/). */
