@@ -11,6 +11,7 @@ import launch
 import launch_testing
 import launch_testing.actions
 import launch_testing.asserts
+import launch_testing.tools
 from ament_index_python.packages import get_package_share_directory
 from launch.actions import ExecuteProcess, IncludeLaunchDescription, TimerAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
@@ -32,6 +33,7 @@ def generate_test_description() -> launch.LaunchDescription:
             "90.0",
         ],
         output="screen",
+        name="check_odom_rmse",
     )
     return launch.LaunchDescription(
         [
@@ -49,26 +51,32 @@ def generate_test_description() -> launch.LaunchDescription:
     )
 
 
+@launch_testing.active_test()
+class TestRmseCheckerActive(unittest.TestCase):
+    def test_checker_prints_success(self, proc_output) -> None:
+        proc_output.assertWaitFor(
+            launch_testing.tools.output.SearchPatternsFound(
+                patterns=[r"RMSE horizontal:"],
+            ),
+            timeout=120.0,
+        )
+
+
 @launch_testing.post_shutdown_test()
 class TestEkfGnssLaunch(unittest.TestCase):
-    def test_checker_exit_code(self, proc_info: launch_testing.ProcInfoHandler) -> None:
-        found = False
-        for proc in proc_info.processes():
-            cmd = proc.process.cmd if proc.process is not None else []
-            if any("check_odom_rmse.py" in str(arg) for arg in cmd):
-                found = True
-                self.assertEqual(
-                    proc.returncode,
-                    0,
-                    msg=f"check_odom_rmse.py failed with code {proc.returncode}",
-                )
-        self.assertTrue(found, "RMSE checker process not found")
-
-    def test_demo_nodes_exit_cleanly(self, proc_info: launch_testing.ProcInfoHandler) -> None:
-        allowed = {0, -2, -15}
-        for proc in proc_info.processes():
-            if proc.process is None:
-                continue
-            name = proc.process.name
-            if name in ("sim_sensor_node", "ekf_gnss_demo_node"):
-                self.assertIn(proc.returncode, allowed, msg=f"{name} exit {proc.returncode}")
+    def test_exit_codes(self, proc_info) -> None:
+        launch_testing.asserts.assertExitCodes(
+            proc_info,
+            allowable_exit_codes=[0, -2, -15],
+            process_names=["check_odom_rmse"],
+        )
+        launch_testing.asserts.assertExitCodes(
+            proc_info,
+            allowable_exit_codes=[0, -2, -15],
+            process_names=["sim_sensor_node"],
+        )
+        launch_testing.asserts.assertExitCodes(
+            proc_info,
+            allowable_exit_codes=[0, -2, -15],
+            process_names=["ekf_gnss_demo_node"],
+        )
