@@ -1,0 +1,20 @@
+{
+  "name": "matched",
+  "filter": {
+    "model_gnss_bias": false,
+    "estimate_wheel_scale": true,
+    "gate": true,
+    "gnss_sigma_m": 1.5
+  },
+  "truth": {
+    "wheel_scale": 1.0,
+    "gyro_bias_rad_s": 0.01
+  },
+  "gnss_sim": {
+    "gauss_markov": false,
+    "multipath_probability": 0.0
+  },
+  "wheel_sim": {
+    "slip_windows": []
+  }
+}
