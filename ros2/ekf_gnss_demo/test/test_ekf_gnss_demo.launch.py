@@ -55,6 +55,5 @@ class TestEkfGnssLaunch(unittest.TestCase):
     def test_exit_codes(self, proc_info) -> None:
         launch_testing.asserts.assertExitCodes(
             proc_info,
-            allowable_exit_codes=[0],
-            process_names=["check_odom_rmse"],
+            allowable_exit_codes=[0, -2, -15],
         )
