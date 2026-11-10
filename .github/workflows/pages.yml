@@ -10,6 +10,7 @@ on:
     branches: [main]
 
 permissions:
+  actions: read
   contents: read
   pages: write
   id-token: write
@@ -47,8 +48,12 @@ jobs:
               });
               return runs.data.workflow_runs.find((r) => r.conclusion === 'success');
             }
-            const coreRun = await lastSuccess('core.yml');
-            const webRun = await lastSuccess('web.yml');
+            // The run that triggered this workflow can be missing from the
+            // completed-runs list for a few seconds, so use it directly.
+            const trig = context.payload.workflow_run;
+            const trigOk = trig.conclusion === 'success';
+            const coreRun = trig.name === 'core' && trigOk ? trig : await lastSuccess('core.yml');
+            const webRun = trig.name === 'web' && trigOk ? trig : await lastSuccess('web.yml');
             const deployOk = Boolean(coreRun && webRun);
             core.setOutput('deploy_ok', deployOk ? 'true' : 'false');
             if (webRun) {
