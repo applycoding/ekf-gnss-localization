@@ -46,15 +46,13 @@ if(EKF_BUILD_TESTS OR EKF_BUILD_WASM OR NOT EKF_BUILD_ROS)
   endif()
 endif()
 
-if(EKF_BUILD_TESTS OR EKF_BUILD_WASM)
-  include(FetchContent)
-  FetchContent_Declare(
-    nlohmann_json
-    GIT_REPOSITORY https://github.com/nlohmann/json.git
-    GIT_TAG 55f93686c01528224f448c19128836e7df245f72
-  )
-  FetchContent_MakeAvailable(nlohmann_json)
-endif()
+include(FetchContent)
+FetchContent_Declare(
+  nlohmann_json
+  GIT_REPOSITORY https://github.com/nlohmann/json.git
+  GIT_TAG 55f93686c01528224f448c19128836e7df245f72
+)
+FetchContent_MakeAvailable(nlohmann_json)
 
 set(EKF_SIM_SOURCES
   cpp/src/sim/rng.cpp
