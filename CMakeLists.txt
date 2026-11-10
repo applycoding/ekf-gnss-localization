@@ -75,10 +75,14 @@ if(NOT EKF_BUILD_WASM)
   target_compile_options(ekf_sim PRIVATE -Werror)
 endif()
 
-if(EKF_BUILD_TESTS)
-  add_executable(ekf_cli cpp/tools/ekf_cli.cpp)
-  target_link_libraries(ekf_cli PRIVATE ekf_sim)
+if(EKF_BUILD_TESTS OR (NOT EKF_BUILD_WASM AND NOT EKF_BUILD_ROS))
+  if(NOT TARGET ekf_cli)
+    add_executable(ekf_cli cpp/tools/ekf_cli.cpp)
+    target_link_libraries(ekf_cli PRIVATE ekf_sim)
+  endif()
+endif()
 
+if(EKF_BUILD_TESTS)
   enable_testing()
   include(GoogleTest)
 
