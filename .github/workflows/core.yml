@@ -1,0 +1,44 @@
+name: core
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1635a433ea3e258ad174747733 # v4.2.2
+
+      - name: Log toolchain
+        run: |
+          g++-13 --version
+          cmake --version
+          python3 --version
+
+      - name: Configure and build
+        run: |
+          cmake --preset default
+          cmake --build --preset default
+
+      - name: Test
+        run: ctest --preset default --output-on-failure
+
+      - name: Monte Carlo label
+        run: cd build/default && ctest -L mc --output-on-failure
+
+      - name: No heap
+        run: python3 tools/check_no_heap.py
+
+      - name: Determinism O0 vs O2
+        run: |
+          cmake -S . -B build/o0 -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-13 \
+            -DCMAKE_CXX_FLAGS="-O0" -DEKF_BUILD_TESTS=OFF
+          cmake --build build/o0 --target ekf_cli
+          cmake -S . -B build/o2 -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-13 \
+            -DCMAKE_CXX_FLAGS="-O2" -DEKF_BUILD_TESTS=OFF
+          cmake --build build/o2 --target ekf_cli
+          rmse0=$(./build/o0/ekf_cli matched 1 | sed -n 's/.*rmse_m=\([^ ]*\).*/\1/p')
+          rmse2=$(./build/o2/ekf_cli matched 1 | sed -n 's/.*rmse_m=\([^ ]*\).*/\1/p')
+          python3 -c "import math; a=float('$rmse0'); b=float('$rmse2'); assert math.isfinite(a) and math.isfinite(b) and abs(a-b)<1e-9"

@@ -183,6 +183,7 @@ Status Predict(Filter& f, const Config& cfg, const ImuSample& imu, double dt_s) 
     Pnew[7 * 8 + 7] += q_b;
   }
 
+  std::memcpy(f.P, Pnew, sizeof(Pnew));
   if (!cfg.model_gnss_bias) {
     for (int i = 0; i < 8; ++i) {
       f.P[i * 8 + 6] = 0.0;
@@ -193,8 +194,6 @@ Status Predict(Filter& f, const Config& cfg, const ImuSample& imu, double dt_s) 
     f.x[6] = 0.0;
     f.x[7] = 0.0;
   }
-
-  std::memcpy(f.P, Pnew, sizeof(Pnew));
   symmetrize_p(f.P);
   f.t_s += dt_s;
 
@@ -217,14 +216,16 @@ UpdateResult joseph_scalar_update(Filter& f, const Config& cfg, int state_idx, d
   res.nis_pre_gate = std::numeric_limits<double>::quiet_NaN();
   res.accepted = false;
 
-  const double h_val = (state_idx == 3) ? f.x[5] * f.x[3] : f.x[state_idx];
+  const double k_lin = backup.x[5];
+  const double v_lin = backup.x[3];
+  const double h_val = (state_idx == 3) ? k_lin * v_lin : backup.x[state_idx];
   const double y = z - h_val;
   y_store = y;
   double S = 0.0;
   if (state_idx == 3 && cfg.estimate_wheel_scale) {
-    S = f.P[27] * f.x[5] * f.x[5] + 2.0 * f.P[27 * 0 + 5] * f.x[3] * f.x[5] + f.P[45] * f.x[3] * f.x[3] + R;
+    S = f.P[27] * k_lin * k_lin + 2.0 * f.P[3 * 8 + 5] * v_lin * k_lin + f.P[45] * v_lin * v_lin + R;
   } else if (state_idx == 3) {
-    S = f.x[5] * f.x[5] * f.P[27] + R;
+    S = k_lin * k_lin * f.P[27] + R;
   } else {
     S = f.P[state_idx * 8 + state_idx] + R;
   }
@@ -263,9 +264,9 @@ UpdateResult joseph_scalar_update(Filter& f, const Config& cfg, int state_idx, d
   std::memset(K, 0, sizeof(K));
   for (int i = 0; i < 8; ++i) {
     if (state_idx == 3 && cfg.estimate_wheel_scale) {
-      K[i] = (f.P[i * 8 + 3] * f.x[5] + f.P[i * 8 + 5] * f.x[3]) / S;
+      K[i] = (f.P[i * 8 + 3] * k_lin + f.P[i * 8 + 5] * v_lin) / S;
     } else if (state_idx == 3) {
-      K[i] = f.P[i * 8 + 3] * f.x[5] / S;
+      K[i] = f.P[i * 8 + 3] * k_lin / S;
     } else {
       K[i] = f.P[i * 8 + state_idx] / S;
     }
@@ -284,12 +285,12 @@ UpdateResult joseph_scalar_update(Filter& f, const Config& cfg, int state_idx, d
       double hij = (j == state_idx) ? 1.0 : 0.0;
       if (state_idx == 3 && cfg.estimate_wheel_scale) {
         if (j == 3) {
-          hij = f.x[5];
+          hij = k_lin;
         } else if (j == 5) {
-          hij = f.x[3];
+          hij = v_lin;
         }
       } else if (state_idx == 3 && j == 3) {
-        hij = f.x[5];
+        hij = k_lin;
       }
       IKH[i * 8 + j] = (i == j ? 1.0 : 0.0) - K[i] * hij;
     }
@@ -318,9 +319,6 @@ UpdateResult joseph_scalar_update(Filter& f, const Config& cfg, int state_idx, d
   }
   for (int i = 0; i < 8; ++i) {
     for (int j = 0; j < 8; ++j) {
-      if (state_idx == 3 && j == 3) {
-        (void)f.x[5];
-      }
       Pnew[i * 8 + j] += K[i] * R * K[j];
     }
   }
@@ -375,11 +373,12 @@ UpdateResult UpdateGnss(Filter& f, const Config& cfg, const Origin& origin,
   res.nis_pre_gate = std::numeric_limits<double>::quiet_NaN();
 
   InitOutput init_out{};
-  const Status init_st =
-      InitOnGnss(f.init, gnss, origin, cfg, init_out);
-  if (init_st != Status::Ok) {
-    res.status = init_st;
-    return res;
+  if (f.lifecycle != Lifecycle::Initialized) {
+    const Status init_st = InitOnGnss(f.init, gnss, origin, cfg, init_out);
+    if (init_st != Status::Ok) {
+      res.status = init_st;
+      return res;
+    }
   }
   if (init_out.ready && f.lifecycle != Lifecycle::Initialized) {
     std::memcpy(f.x, init_out.x, sizeof(f.x));
@@ -493,29 +492,11 @@ UpdateResult UpdateGnss(Filter& f, const Config& cfg, const Origin& origin,
   double K[8][2];
   std::memset(K, 0, sizeof(K));
   for (int i = 0; i < 8; ++i) {
-    double ph[2] = {0.0, 0.0};
-    for (int k = 0; k < 8; ++k) {
-      double h0 = 0.0;
-      double h1 = 0.0;
-      if (k == 0) {
-        h0 = 1.0;
-      }
-      if (k == 1) {
-        h1 = 1.0;
-      }
-      if (cfg.model_gnss_bias) {
-        if (k == 6) {
-          h0 = 1.0;
-        }
-        if (k == 7) {
-          h1 = 1.0;
-        }
-      }
-      ph[0] += f.P[i * 8 + k] * h0;
-      ph[1] += f.P[i * 8 + k] * h1;
-    }
+    const double m0 = f.P[i * 8 + 0] + (cfg.model_gnss_bias ? f.P[i * 8 + 6] : 0.0);
+    const double m1 = f.P[i * 8 + 1] + (cfg.model_gnss_bias ? f.P[i * 8 + 7] : 0.0);
+    const double rhs[2] = {m0, m1};
     double sol[2];
-    if (!cholesky_solve_2(S, ph, sol)) {
+    if (!cholesky_solve_2(S, rhs, sol)) {
       FilterMemcpy(f, backup);
       res.status = Status::Numerical;
       return res;
@@ -569,6 +550,14 @@ UpdateResult UpdateGnss(Filter& f, const Config& cfg, const Origin& origin,
   std::memcpy(f.P, Pnew, sizeof(Pnew));
   symmetrize_p(f.P);
 
+  if (!is_finite_filter(f)) {
+    FilterMemcpy(f, backup);
+    res.status = Status::Numerical;
+    return res;
+  }
+  if (!is_pd_diagonal(f, cfg)) {
+    symmetrize_p(f.P);
+  }
   if (!is_finite_filter(f) || !is_pd_diagonal(f, cfg)) {
     FilterMemcpy(f, backup);
     res.status = Status::Numerical;

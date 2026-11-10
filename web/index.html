@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EKF GNSS localization (simulation)</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app" data-state="loading">
+      <header>
+        <h1>EKF GNSS localization</h1>
+        <p class="subtitle">Simulation-only portfolio demo</p>
+      </header>
+      <section class="controls">
+        <label>
+          Scenario
+          <select id="scenario">
+            <option value="matched">matched</option>
+            <option value="urban">urban</option>
+            <option value="urban_white_model">urban white model</option>
+          </select>
+        </label>
+        <label>
+          Seed
+          <input id="seed" type="number" value="1" min="1" />
+        </label>
+        <label>
+          Gate
+          <input id="gate" type="checkbox" checked />
+        </label>
+        <button id="run" disabled>Run</button>
+        <span id="nees-label"></span>
+      </section>
+      <section class="metrics">
+        <table>
+          <tbody>
+            <tr><td>EKF RMSE (m)</td><td id="rmse-ekf">—</td></tr>
+            <tr><td>GNSS-only RMSE (m)</td><td id="rmse-gnss">—</td></tr>
+            <tr><td>Dead reckoning RMSE (m)</td><td id="rmse-dr">—</td></tr>
+            <tr><td>EKF gate-off RMSE (m)</td><td id="rmse-off">—</td></tr>
+          </tbody>
+        </table>
+      </section>
+      <section class="plots">
+        <canvas id="map" width="640" height="360"></canvas>
+        <canvas id="error" width="640" height="200"></canvas>
+        <canvas id="nees" width="640" height="200"></canvas>
+      </section>
+      <p id="load-error" class="error" hidden></p>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

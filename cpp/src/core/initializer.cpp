@@ -50,7 +50,7 @@ void InitOnWheel(InitializerState& st, const WheelSample& w) {
 
 void InitOnImu(InitializerState& st, const ImuSample& imu, double dt) {
   if (st.lifecycle == Lifecycle::Collecting && st.have_window_start) {
-    st.omega_integral += std::abs(imu.gyro_z_rad_s) * dt;
+    st.omega_integral += imu.gyro_z_rad_s * dt;
   }
 }
 
@@ -101,7 +101,7 @@ Status InitOnGnss(InitializerState& st, const GnssSample& gnss, const Origin& or
     return Status::Ok;
   }
 
-  if (st.omega_integral >= 0.1) {
+  if (std::abs(st.omega_integral) >= 0.1) {
     st.count_a = 0;
     st.count_b = 0;
     st.window_a[0] = fix;
@@ -124,7 +124,8 @@ Status InitOnGnss(InitializerState& st, const GnssSample& gnss, const Origin& or
   const double delta_n = dn_b - dn_a;
   const double delta = std::hypot(delta_e, delta_n);
   const double sigma_meas = cfg.gnss_sigma_m;
-  double sigma_psi = 3.0 * sigma_meas / std::max(delta, 1e-3);
+  const double delta_denom = delta < 1e-3 ? 1e-3 : delta;
+  double sigma_psi = 3.0 * sigma_meas / delta_denom;
   if (sigma_psi < 0.05) {
     sigma_psi = 0.05;
   }

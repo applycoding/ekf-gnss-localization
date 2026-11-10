@@ -86,6 +86,10 @@ if(EKF_BUILD_TESTS)
   target_link_libraries(test_unit PRIVATE ekf_core ekf_sim GTest::gtest_main)
   gtest_discover_tests(test_unit)
 
+  add_executable(test_filter_frozen cpp/test/test_filter_frozen.cpp)
+  target_link_libraries(test_filter_frozen PRIVATE ekf_core GTest::gtest_main)
+  gtest_discover_tests(test_filter_frozen)
+
   add_executable(test_scenario cpp/test/test_scenario.cpp)
   target_link_libraries(test_scenario PRIVATE ekf_core ekf_sim GTest::gtest_main)
   gtest_discover_tests(test_scenario)

@@ -1,0 +1,30 @@
+body {
+  font-family: system-ui, sans-serif;
+  margin: 1rem;
+  background: #0f1115;
+  color: #e7ecf3;
+}
+
+.subtitle {
+  opacity: 0.8;
+}
+
+.controls {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+canvas {
+  display: block;
+  margin-bottom: 0.75rem;
+  background: #1a1f29;
+  border: 1px solid #2b3340;
+  max-width: 100%;
+}
+
+.error {
+  color: #ff8e8e;
+}
