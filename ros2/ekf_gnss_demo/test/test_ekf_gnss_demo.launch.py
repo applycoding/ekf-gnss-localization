@@ -12,7 +12,13 @@ import launch_testing
 import launch_testing.actions
 import launch_testing.asserts
 from ament_index_python.packages import get_package_share_directory
-from launch.actions import ExecuteProcess, IncludeLaunchDescription, Shutdown, TimerAction
+from launch.actions import (
+    ExecuteProcess,
+    IncludeLaunchDescription,
+    RegisterEventHandler,
+    Shutdown,
+    TimerAction,
+)
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 
