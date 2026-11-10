@@ -36,7 +36,7 @@ cd web && npm ci && npx tsc --noEmit && npx vitest run && npm run build
 
 ## ROS 2 Humble (optional demo)
 
-Package `ros2/ekf_gnss_demo`: `sim_sensor_node` replays simulated IMU, wheel, and GNSS topics; `ekf_gnss_demo_node` publishes `/ekf_gnss/odometry` and `/ekf_gnss/pose` from the same deterministic C++ filter run (not a live ROS-graph fusion loop). This is simulation-only; it does **not** benchmark against `robot_localization` (see [DEVIATIONS.md](DEVIATIONS.md)).
+Package `ros2/ekf_gnss_demo`: `sim_sensor_node` streams simulated `/sim/imu`, `/sim/wheel`, `/sim/gnss/pose`, and `/sim/truth` from the C++ scenario log; `ekf_gnss_demo_node` runs the **live** 8-state EKF on those topics and publishes `/ekf_gnss/odometry` and `/ekf_gnss/pose`. Gated CI runs `launch_testing` (`test_ekf_gnss_demo.launch.py`): `check_odom_rmse.py` must receive ≥ 4000 odometry messages, all finite, with horizontal RMSE vs truth ≤ **1.0 m** (PLAN matched criterion, exit code 0/1). No `robot_localization` CSV (see [DEVIATIONS.md](DEVIATIONS.md)).
 
 ```bash
 source /opt/ros/humble/setup.bash

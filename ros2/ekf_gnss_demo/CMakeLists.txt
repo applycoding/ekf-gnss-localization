@@ -23,7 +23,7 @@ target_link_libraries(sim_sensor_node ekf_sim)
 target_compile_features(sim_sensor_node PUBLIC cxx_std_17)
 
 add_executable(ekf_gnss_demo_node src/ekf_gnss_demo_node.cpp)
-ament_target_dependencies(ekf_gnss_demo_node rclcpp nav_msgs geometry_msgs std_msgs)
+ament_target_dependencies(ekf_gnss_demo_node rclcpp nav_msgs geometry_msgs sensor_msgs std_msgs)
 target_link_libraries(ekf_gnss_demo_node ekf_sim)
 target_compile_features(ekf_gnss_demo_node PUBLIC cxx_std_17)
 
@@ -33,23 +33,12 @@ install(TARGETS sim_sensor_node ekf_gnss_demo_node
 install(DIRECTORY launch
   DESTINATION share/${PROJECT_NAME})
 
+install(PROGRAMS test/check_odom_rmse.py
+  DESTINATION share/${PROJECT_NAME}/test)
+
 if(BUILD_TESTING)
-  add_test(
-    NAME smoke_ekf_node
-    COMMAND ekf_gnss_demo_node --ros-args -p replay_rate_hz:=8000.0
-  )
-  set_tests_properties(smoke_ekf_node PROPERTIES
-    TIMEOUT 60
-    PASS_REGULAR_EXPRESSION "ekf_gnss_demo replay finished"
-  )
-  add_test(
-    NAME smoke_sim_node
-    COMMAND sim_sensor_node --ros-args -p replay_rate_hz:=8000.0
-  )
-  set_tests_properties(smoke_sim_node PROPERTIES
-    TIMEOUT 60
-    PASS_REGULAR_EXPRESSION "sim_sensor replay"
-  )
+  find_package(launch_testing_ament_cmake REQUIRED)
+  add_launch_test(test/test_ekf_gnss_demo.launch.py TIMEOUT 180)
 endif()
 
 ament_package()

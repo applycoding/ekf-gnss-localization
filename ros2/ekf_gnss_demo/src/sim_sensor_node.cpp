@@ -3,11 +3,12 @@
 #include "ekf_sim/scenario.hpp"
 #include "ekf_sim/scheduler.hpp"
 
-#include <geometry_msgs/msg/quaternion.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
+#include <std_msgs/msg/empty.hpp>
 
 #include <cmath>
 #include <cstdint>
@@ -54,12 +55,14 @@ class SimSensorNode final : public rclcpp::Node {
     wheel_pub_ = create_publisher<nav_msgs::msg::Odometry>("/sim/wheel", 10);
     gnss_fix_pub_ = create_publisher<sensor_msgs::msg::NavSatFix>("/sim/gnss/fix", 10);
     gnss_pose_pub_ = create_publisher<nav_msgs::msg::Odometry>("/sim/gnss/pose", 10);
+    truth_pub_ = create_publisher<geometry_msgs::msg::PoseStamped>("/sim/truth", 10);
+    complete_pub_ = create_publisher<std_msgs::msg::Empty>("/sim/complete", 10);
 
     const auto period = std::chrono::duration<double>(1.0 / std::max(hz, 1.0));
     timer_ = create_wall_timer(
         std::chrono::duration_cast<std::chrono::nanoseconds>(period),
         std::bind(&SimSensorNode::on_timer, this));
-    RCLCPP_INFO(get_logger(), "sim_sensor replay %s seed %llu (%zu ticks)", scenario.c_str(),
+    RCLCPP_INFO(get_logger(), "sim_sensor live stream %s seed %llu (%zu ticks)", scenario.c_str(),
                 static_cast<unsigned long long>(seed), log_.ticks.size());
   }
 
@@ -67,7 +70,8 @@ class SimSensorNode final : public rclcpp::Node {
   void on_timer() {
     if (idx_ >= log_.ticks.size()) {
       timer_->cancel();
-      RCLCPP_INFO(get_logger(), "sim_sensor replay finished");
+      complete_pub_->publish(std_msgs::msg::Empty{});
+      RCLCPP_INFO(get_logger(), "sim_sensor stream finished");
       rclcpp::shutdown();
       return;
     }
@@ -112,6 +116,14 @@ class SimSensorNode final : public rclcpp::Node {
       pose.pose.covariance[7] = 1.5 * 1.5;
       gnss_pose_pub_->publish(pose);
     }
+
+    geometry_msgs::msg::PoseStamped truth;
+    truth.header.stamp = stamp;
+    truth.header.frame_id = "map";
+    truth.pose.position.x = m.truth_e;
+    truth.pose.position.y = m.truth_n;
+    truth.pose.orientation.w = 1.0;
+    truth_pub_->publish(truth);
   }
 
   ekf::sim::MeasurementLog log_{};
@@ -120,6 +132,8 @@ class SimSensorNode final : public rclcpp::Node {
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr wheel_pub_;
   rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr gnss_fix_pub_;
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr gnss_pose_pub_;
+  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr truth_pub_;
+  rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr complete_pub_;
   rclcpp::TimerBase::SharedPtr timer_;
 };
 
