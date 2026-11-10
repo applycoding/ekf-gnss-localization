@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Launch test: live sim topics through ekf_gnss_demo_node; RMSE checker exits non-zero on failure."""
+"""Launch test: includes full stack + RMSE checker (pre-shutdown wait)."""
 
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ import launch
 import launch_testing
 import launch_testing.actions
 import launch_testing.asserts
+import launch_testing.tools.output
 from ament_index_python.packages import get_package_share_directory
 from launch.actions import ExecuteProcess, IncludeLaunchDescription, TimerAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
@@ -50,9 +51,21 @@ def generate_test_description() -> launch.LaunchDescription:
     )
 
 
+@launch_testing.pre_shutdown_test()
+class TestWaitForRmse(unittest.TestCase):
+    def test_wait_for_checker_output(self, proc_output) -> None:
+        proc_output.assertWaitFor(
+            launch_testing.tools.output.SearchPatternsFound(
+                patterns=[r"RMSE horizontal:"],
+            ),
+            timeout=120.0,
+            stream="stdout",
+        )
+
+
 @launch_testing.post_shutdown_test()
 class TestEkfGnssLaunch(unittest.TestCase):
-    def test_exit_codes(self, proc_info) -> None:
+    def test_checker_exit_code(self, proc_info) -> None:
         launch_testing.asserts.assertExitCodes(
             proc_info,
             allowable_exit_codes=[0, -2, -15],
