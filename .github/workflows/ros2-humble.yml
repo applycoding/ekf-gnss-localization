@@ -32,7 +32,6 @@ jobs:
             ros-humble-launch \
             ros-humble-launch-ros \
             ros-humble-launch-testing \
-            ros-humble-launch-testing-ros \
             ros-humble-launch-testing-ament-cmake
 
       - name: Log toolchain
@@ -42,6 +41,12 @@ jobs:
           python3 --version
           source /opt/ros/humble/setup.bash
           test -f /opt/ros/humble/setup.bash
+          dpkg-query -W -f='${Package} ${Version}\n' \
+            ros-humble-ament-cmake ros-humble-rclcpp ros-humble-rclpy \
+            ros-humble-ament-index-python ros-humble-nav-msgs \
+            ros-humble-sensor-msgs ros-humble-geometry-msgs ros-humble-std-msgs \
+            ros-humble-launch ros-humble-launch-ros ros-humble-launch-testing \
+            ros-humble-launch-testing-ament-cmake
 
       - name: Colcon build and test ekf_gnss_demo
         run: |
