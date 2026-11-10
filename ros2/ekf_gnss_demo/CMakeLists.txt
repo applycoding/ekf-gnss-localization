@@ -36,9 +36,10 @@ install(DIRECTORY launch
 if(BUILD_TESTING)
   find_package(ament_cmake_test REQUIRED)
   install(PROGRAMS test/smoke_topics.sh DESTINATION share/${PROJECT_NAME}/test)
+  set(_install_setup "${CMAKE_BINARY_DIR}/../../install/setup.bash")
   ament_add_test(
     smoke_topics
-    COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/test/smoke_topics.sh"
+    COMMAND bash -c ". '${_install_setup}' && '${CMAKE_CURRENT_SOURCE_DIR}/test/smoke_topics.sh'"
     TIMEOUT 120
   )
 endif()
