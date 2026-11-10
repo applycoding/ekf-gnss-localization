@@ -34,8 +34,6 @@ install(DIRECTORY launch
   DESTINATION share/${PROJECT_NAME})
 
 if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  ament_lint_auto_find_test_dependencies()
   find_package(launch_testing_ament_cmake REQUIRED)
   add_launch_test(test/test_ekf_gnss_demo.launch.py)
 endif()

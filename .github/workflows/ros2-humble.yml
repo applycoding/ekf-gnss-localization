@@ -47,9 +47,14 @@ jobs:
         run: |
           set -ex
           source /opt/ros/humble/setup.bash
-          cd "${GITHUB_WORKSPACE}"
+          cd "${GITHUB_WORKSPACE}/ros2"
+          test "$(colcon list --packages-select ekf_gnss_demo | wc -l)" -eq 1
           colcon build --packages-select ekf_gnss_demo \
             --cmake-args -DCMAKE_BUILD_TYPE=Release -GNinja
           source install/setup.bash
-          colcon test --packages-select ekf_gnss_demo --event-handlers console_direct+
+          colcon test --packages-select ekf_gnss_demo \
+            --event-handlers console_direct+ \
+            --return-code-on-test-failure
           colcon test-result --verbose
+          ntests=$(colcon test-result --verbose 2>&1 | awk '/Summary:/{print $2; exit}')
+          test "${ntests:-0}" -gt 0
