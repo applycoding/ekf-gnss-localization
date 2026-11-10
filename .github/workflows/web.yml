@@ -16,6 +16,11 @@ jobs:
         with:
           node-version: "26.13.0"
 
+      - name: Native CLI for WASM parity
+        run: |
+          cmake --preset default
+          cmake --build --preset default --target ekf_cli
+
       - name: emsdk 7.0.0 + WASM
         run: |
           set -euxo pipefail
