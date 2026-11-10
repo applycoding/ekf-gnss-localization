@@ -37,8 +37,13 @@ def generate_test_description() -> tuple[launch.LaunchDescription, dict]:
         output="screen",
         name="check_odom_rmse",
     )
+    # Keeps the launch alive until the active tests finish. Without it the
+    # launch can end as soon as the nodes exit, and launch_testing then fails
+    # with "Processes under test stopped before tests completed".
+    keepalive = ExecuteProcess(cmd=["sleep", "300"], name="keepalive", output="log")
     return launch.LaunchDescription(
         [
+            keepalive,
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(launch_file),
                 launch_arguments={
